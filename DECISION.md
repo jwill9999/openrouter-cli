@@ -42,7 +42,8 @@ This document tracks major design choices, scope, and phased roadmap for the **o
 
 ### Next Checkpoints
 - Wire skeleton code into repo and basic CI (build + lint + test).
-- Tag `v0.1.0` and publish to npm.
+- Release automation: adopt semantic-release with Conventional Commits.
+- Cut `v0.1.0` from `main` via CI (no manual tagging).
 - Plan Iteration 2: `.openrouterrc` & profiles.
 
 ---
@@ -104,4 +105,47 @@ This document tracks major design choices, scope, and phased roadmap for the **o
 ---
 
 
+### Release Process (v0.1.x)
+- Releasing
+  - Stable releases occur on `main` via semantic-release. Conventional Commits decide bump.
+  - Git tags (`vX.Y.Z`) and GitHub Releases are created by CI; npm publish is automated.
+- Pre-releases
+  - Dev branches (`story/**`, `feature/**`, `release/**`) publish prereleases to npm with `beta` dist-tag.
+  - No repo tags are created for prereleases.
+- Developer Experience
+  - commitlint + Conventional Commits enforced in PR and via local Husky hooks.
+  - ESLint on staged files pre-commit; tests pre-push.
 
+
+## Iteration 2 (v0.2.0) — Plan
+
+### Scope
+- Project-local `.openrouterrc` overrides.
+- Profiles (e.g. `--profile dev`) with per-profile domain/model/system overrides.
+
+### Design
+- Config precedence:
+  - CLI flags > env vars > project `.openrouterrc` > global config.
+- Files:
+  - Global: `~/.config/openrouter-cli/config.json` (existing)
+  - Project: `./.openrouterrc` (JSON or YAML; v0.2: JSON only)
+- Profiles:
+  - Specify via `--profile <name>` on CLI and REPL.
+  - Global and project configs can define `profiles` object; missing keys fall back to base config.
+
+### CLI/UX
+- Add `--profile` to `ask`, `repl`, and `test`.
+- `config` command: support reading/writing base values only in v0.2; profiles are read-only initially.
+
+### Security
+- Same key-handling guarantees; never log secrets.
+- Project file is not created automatically; only read if present.
+
+### Tasks
+- Implement loader for `.openrouterrc` with merge logic and precedence.
+- Add profile resolver with fallback.
+- Update help/docs and examples.
+- Add unit tests for precedence and profiles.
+
+### Out of Scope for v0.2
+- YAML/TOML formats, keychain storage, remote profiles.

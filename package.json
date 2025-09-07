@@ -1,10 +1,11 @@
 {
-  "name": "openrouter-cli",
-  "version": "0.1.0",
+  "name": "@letuscode/openrouter-cli",
+  "version": "1.0.0-beta.1",
   "description": "CLI tool for OpenRouter (OpenAI-compatible)",
   "bin": {
     "openrouter": "dist/index.js"
   },
+  "main": "dist/index.js",
   "type": "module",
   "engines": {
     "node": ">=18.17"
@@ -14,7 +15,11 @@
     "dev": "node --loader ts-node/esm src/index.ts",
     "lint": "eslint \"src/**/*.{js,ts,mjs,cjs}\"",
     "test": "node -e \"console.log('No tests yet')\"",
-    "prepare": "npm run build"
+    "prepare": "husky",
+    "prepublishOnly": "npm run build",
+    "postinstall": "husky install",
+    "release": "semantic-release",
+    "commit": "cz"
   },
   "keywords": [
     "openrouter",
@@ -24,6 +29,22 @@
   ],
   "author": "",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jwill9999/openrouter-cli"
+  },
+  "bugs": {
+    "url": "https://github.com/jwill9999/openrouter-cli/issues"
+  },
+  "homepage": "https://github.com/jwill9999/openrouter-cli#readme",
+  "files": [
+    "dist/**",
+    "README.md",
+    "DECISION.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "commander": "^14.0.0"
   },
@@ -34,7 +55,28 @@
     "@typescript-eslint/parser": "^8.42.0",
     "globals": "^15.9.0",
     "eslint": "^9.35.0",
+    "@commitlint/cli": "^19.4.0",
+    "@commitlint/config-conventional": "^19.4.0",
+    "@commitlint/cz-commitlint": "^19.4.0",
+    "commitizen": "^4.3.0",
+    "husky": "^9.1.6",
+    "lint-staged": "^15.2.10",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/commit-analyzer": "^11.1.0",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^10.0.3",
+    "@semantic-release/npm": "^11.0.2",
+    "@semantic-release/release-notes-generator": "^12.1.0",
+    "semantic-release": "^23.1.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.2"
+  },
+  "lint-staged": {
+    "src/**/*.{ts,js,mjs,cjs}": "eslint --fix --max-warnings=0"
+  },
+  "config": {
+    "commitizen": {
+      "path": "@commitlint/cz-commitlint"
+    }
   }
 }
