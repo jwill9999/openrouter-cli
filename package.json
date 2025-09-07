@@ -1,6 +1,6 @@
 {
   "name": "openrouter-cli",
-  "version": "0.1.0-beta.0",
+  "version": "1.0.0-beta.1",
   "description": "CLI tool for OpenRouter (OpenAI-compatible)",
   "bin": {
     "openrouter": "dist/index.js"
