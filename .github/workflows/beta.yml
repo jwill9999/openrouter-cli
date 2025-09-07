@@ -22,13 +22,14 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: npm run build --if-present
       - name: Bump prerelease version (beta) without tagging
+        shell: bash
         run: |
           CURRENT=$(node -p "require('./package.json').version")
           echo "Current version: $CURRENT"
           npm version prerelease --preid=beta --no-git-tag-version
-          echo "New version: $(node -p \"require('./package.json').version\")"
+          NEW=$(node -p "require('./package.json').version")
+          echo "New version: $NEW"
       - name: Publish to npm (beta tag)
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --tag beta --provenance --access public
-
