@@ -35,6 +35,7 @@ Stable releases (main)
 - Merge to `main` with `feat`, `fix`, or `BREAKING CHANGE` commits triggers release:
   - Publishes to npm with the next semver.
   - Creates Git tag (`vX.Y.Z`) and GitHub Release.
+  - Note: CHANGELOG.md is generated in CI but not committed back (tags/releases are the source of truth).
 
 Pre-releases
 - Beta snapshots publish from dev branches (`story/**`, `feature/**`, `release/**`).
