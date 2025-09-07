@@ -14,7 +14,8 @@
     "build": "tsc -p .",
     "dev": "node --loader ts-node/esm src/index.ts",
     "lint": "eslint \"src/**/*.{js,ts,mjs,cjs}\"",
-    "test": "node -e \"console.log('No tests yet')\"",
+    "test": "vitest run --reporter=default",
+    "test:watch": "vitest --watch",
     "prepare": "husky",
     "prepublishOnly": "npm run build",
     "postinstall": "husky install",
@@ -46,7 +47,8 @@
     "access": "public"
   },
   "dependencies": {
-    "commander": "^14.0.0"
+    "commander": "^14.0.0",
+    "js-yaml": "^4.1.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.35.0",
@@ -67,6 +69,7 @@
     "@semantic-release/github": "^10.0.3",
     "@semantic-release/npm": "^11.0.2",
     "@semantic-release/release-notes-generator": "^12.1.0",
+    "vitest": "^2.1.1",
     "semantic-release": "^23.1.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.2"
