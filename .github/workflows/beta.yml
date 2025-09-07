@@ -20,7 +20,13 @@ jobs:
           node-version: 20.x
           cache: 'npm'
           registry-url: 'https://registry.npmjs.org'
+          scope: '@letuscode'
+          always-auth: true
       - run: npm install --no-audit --no-fund
+      - name: Verify npm auth
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
+        run: npm whoami || true
       - run: npm run build --if-present
       - name: Bump prerelease version (beta) without tagging
         shell: bash
@@ -32,5 +38,6 @@ jobs:
           echo "New version: $NEW"
       - name: Publish to npm (beta tag)
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
         run: npm publish --tag beta --provenance --access public
