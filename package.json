@@ -1,0 +1,40 @@
+{
+  "name": "openrouter-cli",
+  "version": "0.1.0",
+  "description": "CLI tool for OpenRouter (OpenAI-compatible)",
+  "bin": {
+    "openrouter": "dist/index.js"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=18.17"
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "dev": "node --loader ts-node/esm src/index.ts",
+    "lint": "eslint \"src/**/*.{js,ts,mjs,cjs}\"",
+    "test": "node -e \"console.log('No tests yet')\"",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "openrouter",
+    "cli",
+    "openai-compatible",
+    "llm"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^14.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.35.0",
+    "@types/node": "^24.3.1",
+    "@typescript-eslint/eslint-plugin": "^8.42.0",
+    "@typescript-eslint/parser": "^8.42.0",
+    "globals": "^15.9.0",
+    "eslint": "^9.35.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
+  }
+}
