@@ -29,6 +29,14 @@
   ],
   "author": "",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jwill9999/openrouter-cli"
+  },
+  "bugs": {
+    "url": "https://github.com/jwill9999/openrouter-cli/issues"
+  },
+  "homepage": "https://github.com/jwill9999/openrouter-cli#readme",
   "files": [
     "dist/**",
     "README.md",
