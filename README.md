@@ -2,14 +2,14 @@
 
 [![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow.svg)](https://www.conventionalcommits.org)
 [![semantic-release](https://img.shields.io/badge/semantic--release-automated-green?logo=semantic-release)](https://semantic-release.gitbook.io)
-[![npm (beta)](https://img.shields.io/npm/v/%40letuscode%2Fopenrouter-cli/beta)](https://www.npmjs.com/package/@jwill9999/openrouter-cli)
+[![npm (beta)](https://img.shields.io/npm/v/%40letuscode%2Fopenrouter-cli/beta)](https://www.npmjs.com/package/@letuscode/openrouter-cli)
 
 Releases are automated: Conventional Commits determine version bumps and semantic-release publishes stable builds from `main` and prereleases on the `beta` channel from dev branches. Use `npm run commit` for a guided, standards-compliant commit message.
 
 CLI tool for OpenRouter (OpenAI-compatible). Early v0.1.0 skeleton.
 
 Installation
-- npm: `npm i -g @jwill9999/openrouter-cli` (or run locally with `npx @jwill9999/openrouter-cli`)
+- npm: `npm i -g @letuscode/openrouter-cli` (or run locally with `npx @letuscode/openrouter-cli`)
 
 Setup
 - Set API key via env: `export OPENROUTER_API_KEY=...` (or `OPENAI_API_KEY`)
@@ -38,7 +38,7 @@ Stable releases (main)
 
 Pre-releases
 - Beta snapshots publish from dev branches (`story/**`, `feature/**`, `release/**`).
-- Install beta builds: `npm i @jwill9999/openrouter-cli@beta`
+- Install beta builds: `npm i @letuscode/openrouter-cli@beta`
 - Driven by commit messages; semver prerelease scheme.
 - Beta builds are npm-only; stable tags are created on `main`.
 
