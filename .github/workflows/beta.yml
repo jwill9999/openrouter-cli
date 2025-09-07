@@ -9,6 +9,7 @@ on:
 
 jobs:
   beta:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -36,7 +37,20 @@ jobs:
           npm version prerelease --preid=beta --no-git-tag-version
           NEW=$(node -p "require('./package.json').version")
           echo "New version: $NEW"
+      - name: Skip if version already exists
+        id: exists
+        shell: bash
+        run: |
+          PKG=$(node -p "require('./package.json').name")
+          VER=$(node -p "require('./package.json').version")
+          if npm view "$PKG@$VER" version >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Version $PKG@$VER already exists on registry; skipping publish."
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
       - name: Publish to npm (beta tag)
+        if: steps.exists.outputs.exists == 'false'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
           NPM_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
