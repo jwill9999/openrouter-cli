@@ -1,0 +1,34 @@
+name: Beta Prerelease
+
+on:
+  push:
+    branches:
+      - 'story/**'
+      - 'feature/**'
+      - 'release/**'
+
+jobs:
+  beta:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
+      - run: npm install --no-audit --no-fund
+      - run: npm run build --if-present
+      - name: Bump prerelease version (beta) without tagging
+        run: |
+          CURRENT=$(node -p "require('./package.json').version")
+          echo "Current version: $CURRENT"
+          npm version prerelease --preid=beta --no-git-tag-version
+          echo "New version: $(node -p \"require('./package.json').version\")"
+      - name: Publish to npm (beta tag)
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --tag beta --provenance --access public
+
