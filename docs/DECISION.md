@@ -4,7 +4,7 @@ This document tracks major design choices, scope, and phased roadmap for the **o
 
 ---
 
-## Iteration 1 (v0.1.0)
+## Iteration 1 (v0.1.x)
 
 ### Scope
 - npm-first TypeScript CLI (alias: `openrouter`).
@@ -41,10 +41,16 @@ This document tracks major design choices, scope, and phased roadmap for the **o
 - Ship streaming UX and exit semantics early for smooth demos.
 
 ### Next Checkpoints
-- Wire skeleton code into repo and basic CI (build + lint + test).
-- Release automation: adopt semantic-release with Conventional Commits.
-- Cut `v0.1.0` from `main` via CI (no manual tagging).
-- Plan Iteration 2: `.openrouterrc` & profiles.
+- Wire skeleton code into repo and basic CI (build + lint + test). ✅ Completed
+- Release automation: adopt semantic-release with Conventional Commits. ✅ Completed
+- Release from `main` via CI (no manual tagging). ✅ Completed (shipped as `v1.0.0`)
+- Plan Iteration 2: `.openrouterrc` & profiles. ✅ Completed
+
+### Acceptance (Completed as v1.0.0)
+- All scope items delivered (CLI, config, defaults, `config`/`test`/`ask`/`repl` with streaming, API key handling).
+- Security constraints honored (no key logging; best‑effort chmod 600).
+- CI in place (build, lint, test) and production release automation configured.
+- Version note: initial stable was published as `v1.0.0` (commit history included a breaking change). We accept this as Iteration 1’s shipped version; no reversioning planned.
 
 ---
 
@@ -142,10 +148,10 @@ This document tracks major design choices, scope, and phased roadmap for the **o
 - Project file is not created automatically; only read if present.
 
 ### Tasks
-- Implement loader for `.openrouterrc` with merge logic and precedence.
-- Add profile resolver with fallback.
-- Update help/docs and examples.
-- Add unit tests for precedence and profiles.
+- Implement loader for `.openrouterrc` with merge logic and precedence. ✅ Completed
+- Add profile resolver with fallback. ✅ Completed
+- Update help/docs and examples. ✅ Completed
+- Add unit tests for precedence and profiles. ⏳ Partial (URL join test added; profile tests next)
 
 ### Out of Scope for v0.2
 - YAML/TOML formats, keychain storage, remote profiles.

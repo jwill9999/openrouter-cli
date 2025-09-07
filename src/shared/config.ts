@@ -6,6 +6,7 @@ export type CliConfig = {
   domain?: string;
   model?: string;
   apiKey?: string; // optional persisted key
+  profiles?: Record<string, Omit<CliConfig, 'profiles'>>;
 };
 
 const CONFIG_DIR = path.join(os.homedir(), ".config", "openrouter-cli");
@@ -43,3 +44,69 @@ export async function updateConfig(patch: Partial<CliConfig>) {
 
 export const paths = { CONFIG_DIR, CONFIG_FILE } as const;
 
+// Update or create a named profile within the global config
+export async function updateProfile(profile: string, patch: Partial<CliConfig>) {
+  const current = await readConfig();
+  const profiles = { ...(current.profiles || {}) } as NonNullable<CliConfig['profiles']>;
+  const cur = profiles[profile] || {};
+  // Remove 'profiles' property from patch to prevent nested profiles
+  const { profiles: _omit, ...safePatch } = patch;
+  profiles[profile] = { ...cur, ...safePatch };
+  await updateConfig({ profiles });
+}
+
+// Project-local overrides: .openrouterrc(.json|.yaml|.yml)
+export async function readProjectRc(cwd = process.cwd()): Promise<Partial<CliConfig>> {
+  const candidates = [
+    path.join(cwd, ".openrouterrc"),
+    path.join(cwd, ".openrouterrc.json"),
+    path.join(cwd, ".openrouterrc.yaml"),
+    path.join(cwd, ".openrouterrc.yml"),
+  ];
+  for (const file of candidates) {
+    try {
+      const txt = await fs.readFile(file, "utf8");
+      const parsed = await parseRc(txt, path.extname(file));
+      return (parsed || {}) as Partial<CliConfig>;
+    } catch (err: any) {
+      if (err?.code === "ENOENT") continue;
+      throw err;
+    }
+  }
+  return {};
+}
+
+async function parseRc(text: string, ext: string) {
+  try {
+    if (ext === ".yaml" || ext === ".yml") {
+      const { safeLoad } = await import("js-yaml");
+      return safeLoad(text) as unknown;
+    }
+    // Try JSON first for no-extension or .json
+    return JSON.parse(text);
+  } catch (e) {
+    // Fallback: if no extension, try YAML
+    if (!ext) {
+      try {
+        const { safeLoad } = await import("js-yaml");
+        return safeLoad(text) as unknown;
+      } catch {}
+    }
+    throw e;
+  }
+}
+
+export type ResolvedConfig = {
+  domain?: string;
+  model?: string;
+  apiKey?: string;
+};
+
+// Resolve effective config with precedence: project > profile > global base
+export async function resolveConfig(profile?: string): Promise<ResolvedConfig> {
+  const global = await readConfig();
+  const project = await readProjectRc();
+  const base = { domain: global.domain, model: global.model, apiKey: global.apiKey };
+  const prof = profile ? global.profiles?.[profile] || {} : {};
+  return { ...base, ...prof, ...project };
+}

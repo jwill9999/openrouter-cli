@@ -113,7 +113,7 @@ async function safeJson(res: Response) {
   }
 }
 
-function joinUrl(base: string, path: string) {
+export function joinUrl(base: string, path: string) {
   const u = new URL(base);
   const basePath = u.pathname.replace(/\/+$/, "");
   const rel = path.replace(/^\/+/, "");
