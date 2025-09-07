@@ -47,7 +47,7 @@ Contributing
 - Local hooks (Husky):
   - commit-msg: commitlint enforces Conventional Commits.
   - pre-commit: lint-staged runs ESLint with `--fix` on staged files.
-  - pre-push: runs `npm test`.
+  - pre-push: runs `npm test` and `npm run build`.
 - Setup: run `npm install` once to install hooks (postinstall runs `husky install`).
 - Manual runs:
   - `npx commitlint --from HEAD~1 --to HEAD` (check last commit)

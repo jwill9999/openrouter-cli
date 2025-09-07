@@ -1,1 +1,6 @@
-npm test
+#!/usr/bin/env sh
+# Lint staged files before commit (skip in CI)
+if [ -n "$CI" ] || [ "$HUSKY" = "0" ] || [ -n "$HUSKY_SKIP_HOOKS" ]; then
+  exit 0
+fi
+npx --no -- lint-staged

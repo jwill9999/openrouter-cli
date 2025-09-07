@@ -1,4 +1,7 @@
 #!/usr/bin/env sh
-# Run tests before pushing
-npm test
+# Run tests and build before pushing (skip in CI)
+if [ -n "$CI" ] || [ "$HUSKY" = "0" ] || [ -n "$HUSKY_SKIP_HOOKS" ]; then
+  exit 0
+fi
 
+npm test && npm run build
