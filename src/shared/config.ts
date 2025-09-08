@@ -79,8 +79,8 @@ export async function readProjectRc(cwd = process.cwd()): Promise<Partial<CliCon
 async function parseRc(text: string, ext: string) {
   try {
     if (ext === ".yaml" || ext === ".yml") {
-      const { load } = await import("js-yaml");
-      return load(text) as unknown;
+      const { safeLoad } = await import("js-yaml");
+      return safeLoad(text) as unknown;
     }
     // Try JSON first for no-extension or .json
     return JSON.parse(text);
@@ -88,8 +88,8 @@ async function parseRc(text: string, ext: string) {
     // Fallback: if no extension, try YAML
     if (!ext) {
       try {
-        const { load } = await import("js-yaml");
-        return load(text) as unknown;
+        const { safeLoad } = await import("js-yaml");
+        return safeLoad(text) as unknown;
       } catch {}
     }
     throw e;
