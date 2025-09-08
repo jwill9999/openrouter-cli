@@ -49,7 +49,9 @@ export async function updateProfile(profile: string, patch: Partial<CliConfig>) 
   const current = await readConfig();
   const profiles = { ...(current.profiles || {}) } as NonNullable<CliConfig['profiles']>;
   const cur = profiles[profile] || {};
-  profiles[profile] = { ...cur, ...patch };
+  // Remove 'profiles' property from patch to prevent nested profiles
+  const { profiles: _omit, ...safePatch } = patch;
+  profiles[profile] = { ...cur, ...safePatch };
   await updateConfig({ profiles });
 }
 
