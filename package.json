@@ -3,7 +3,7 @@
   "version": "1.0.0-beta.1",
   "description": "CLI tool for OpenRouter (OpenAI-compatible)",
   "bin": {
-    "openrouter": "dist/index.js"
+    "openrouter": "bin/openrouter"
   },
   "main": "dist/index.js",
   "type": "module",
@@ -18,6 +18,7 @@
     "test:watch": "vitest --watch",
     "prepare": "husky",
     "prepublishOnly": "npm run build",
+    "prepack": "npm run build && node scripts/prepack.mjs",
     "postinstall": "husky install",
     "release": "semantic-release",
     "commit": "cz"
@@ -39,6 +40,7 @@
   },
   "homepage": "https://github.com/jwill9999/openrouter-cli#readme",
   "files": [
+    "bin/**",
     "dist/**",
     "README.md",
     "DECISION.md"
