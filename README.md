@@ -14,7 +14,7 @@ Installation
 Setup
 - Set API key via env: `export OPENROUTER_API_KEY=...` (or `OPENAI_API_KEY`)
 - Or persist it: `openrouter config --api-key sk-...`
- - Full guide: see `docs/CONFIGURATION.md`
+- Full guide: see `docs/CONFIGURATION.md`
 
 Defaults
 - Domain: `https://openrouter.ai/api/v1`
@@ -64,7 +64,7 @@ Contributing
   - commit-msg: commitlint enforces Conventional Commits.
   - pre-commit: lint-staged runs ESLint with `--fix` on staged files.
   - pre-push: runs `npm test` and `npm run build`.
-- Setup: run `npm install` once to install hooks (postinstall runs `husky install`).
+- Setup: run `npm install` then `npm run dev:hooks` once to install hooks locally.
 - Manual runs:
   - `npx commitlint --from HEAD~1 --to HEAD` (check last commit)
   - `npx lint-staged` (run staged linting)

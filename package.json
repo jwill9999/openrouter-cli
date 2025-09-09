@@ -16,9 +16,8 @@
     "lint": "eslint \"src/**/*.{js,ts,mjs,cjs}\"",
     "test": "vitest run --reporter=default",
     "test:watch": "vitest --watch",
-    "prepare": "husky",
     "prepublishOnly": "npm run build",
-    "postinstall": "husky install",
+    "dev:hooks": "husky install",
     "release": "semantic-release",
     "commit": "cz"
   },
