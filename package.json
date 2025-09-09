@@ -18,7 +18,7 @@
     "test:watch": "vitest --watch",
     "prepare": "husky",
     "prepublishOnly": "npm run build",
-    "prepack": "npm run build && chmod +x bin/openrouter",
+    "prepack": "npm run build && node scripts/prepack.mjs",
     "postinstall": "husky install",
     "release": "semantic-release",
     "commit": "cz"
