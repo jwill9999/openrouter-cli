@@ -14,20 +14,35 @@ Installation
 Setup
 - Set API key via env: `export OPENROUTER_API_KEY=...` (or `OPENAI_API_KEY`)
 - Or persist it: `openrouter config --api-key sk-...`
+ - Full guide: see `docs/CONFIGURATION.md`
 
 Defaults
 - Domain: `https://openrouter.ai/api/v1`
 - Model: `meta-llama/llama-3.1-8b-instruct`
 
 Commands
-- `openrouter config [--domain URL] [--model NAME] [--api-key KEY]`
-- `openrouter test` — calls `/models` to verify connectivity
-- `openrouter ask "your question" [-m MODEL] [-s SYSTEM] [--no-stream]`
-- `openrouter repl` — interactive chat (streaming). Commands: `exit`, `/model`, `/system`
+- `openrouter config [--domain URL] [--model NAME] [--api-key KEY] [--profile NAME] [--list]`
+- `openrouter test [--profile NAME]` — calls `/models` to verify connectivity
+- `openrouter ask "your question" [-m MODEL] [-s SYSTEM] [--profile NAME] [--no-stream]`
+- `openrouter repl [--profile NAME]` — interactive chat (streaming). Commands: `exit`, `/model`, `/system`
 
 Config
 - Stored at `~/.config/openrouter-cli/config.json` with chmod 600 when possible.
 - API keys are never logged; printed configs redact the key.
+
+Project-local overrides (.openrouterrc)
+- Place a `.openrouterrc` in the project root (JSON or YAML) to override `domain` and `model` for that project.
+- Example JSON:
+  {
+    "domain": "http://localhost:11434/v1",
+    "model": "gemma2:9b-instruct"
+  }
+
+Profiles
+- Store named profiles in the global config under `profiles`.
+- Select a profile at runtime via `--profile <name>`.
+- Update/create a profile via: `openrouter config --profile dev --domain ... --model ...`.
+ - More details: see `docs/CONFIGURATION.md`
 
 Publishing
 Stable releases (main)
