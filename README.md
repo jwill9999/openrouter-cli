@@ -1,5 +1,8 @@
 # openrouter-cli
 
+[![npm latest](https://img.shields.io/npm/v/@letuscode/openrouter-cli)](https://www.npmjs.com/package/@letuscode/openrouter-cli)
+[![npm beta](https://img.shields.io/npm/v/@letuscode/openrouter-cli/beta)](https://www.npmjs.com/package/@letuscode/openrouter-cli?activeTab=versions)
+
 OpenAI‑compatible CLI for OpenRouter. Ask questions, run a REPL, and manage per‑project or global settings.
 
 Requirements
