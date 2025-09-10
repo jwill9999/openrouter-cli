@@ -25,7 +25,7 @@ describe('streamChat SSE parsing', () => {
           const v = enc.encode(chunks[this.i++]);
           return { done: false, value: v };
         }
-        return { done: true } as any;
+        return { done: true };
       }
     };
     globalThis.fetch = (async () => ({
@@ -50,4 +50,3 @@ describe('streamChat SSE parsing', () => {
     expect(writes.join('')).toBe('Hello world');
   });
 });
-

@@ -1,5 +1,6 @@
 import readline from 'node:readline';
 import { updateConfig, updateProfile } from './config.js';
+import type { CliConfig } from './config.js';
 import { getDefaultConfig } from './env.js';
 import { testConnection } from './openrouter.js';
 
@@ -47,7 +48,7 @@ export async function runInitWizard(): Promise<boolean> {
 
   if (save) {
     // Persist selections. If a profile is provided, write under that profile; otherwise write to base config.
-    const changes: any = { provider, domain: domain || undefined, model: model || undefined };
+    const changes: Partial<CliConfig> = { provider, domain: domain || undefined, model: model || undefined };
     if (apiKey) changes.apiKey = apiKey;
     if (profile) {
       await updateProfile(profile, changes);
