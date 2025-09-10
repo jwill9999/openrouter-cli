@@ -3,3 +3,21 @@ dist/
 .DS_Store
 npm-debug.log*
 
+# Local npm cache used by pack:dry
+.npm-cache/
+
+# Coverage reports
+coverage/
+
+# Editor settings (keep local)
+.vscode/
+.idea/
+
+# Local test artifacts
+*.tgz
+
+# Project-local override files (avoid accidental commits)
+.openrouterrc
+.openrouterrc.json
+.openrouterrc.yaml
+.openrouterrc.yml

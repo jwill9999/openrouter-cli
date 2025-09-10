@@ -6,6 +6,7 @@ export type CliConfig = {
   domain?: string;
   model?: string;
   apiKey?: string; // optional persisted key
+  provider?: 'openrouter' | 'openai' | 'custom';
   profiles?: Record<string, Omit<CliConfig, 'profiles'>>;
 };
 

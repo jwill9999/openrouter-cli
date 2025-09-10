@@ -17,6 +17,9 @@ Defaults:
 - Domain: `https://openrouter.ai/api/v1`
 - Model: `meta-llama/llama-3.1-8b-instruct`
 
+Interactive onboarding:
+- Run `openrouter init` to select a provider preset, set domain/model, and (optionally) persist an API key. Commands like `ask`, `test`, and `repl` auto‑prompt on missing keys in TTY unless `--no-init` is provided.
+
 ## Global Config
 
 - Path: `~/.config/openrouter-cli/config.json`
@@ -38,15 +41,15 @@ Defaults:
 
 ### Managing Global Config via CLI
 
-- Update base (global) config:
-  - `openrouter config --domain https://openrouter.ai/api/v1 --model meta-llama/llama-3.1-8b-instruct`
-- Create/update a profile:
-  - `openrouter config --profile dev --domain http://localhost:11434/v1 --model gemma2:9b-instruct`
 - Persist an API key (optional):
   - Global: `openrouter config --api-key sk-...`
   - Profile: `openrouter config --profile dev --api-key sk-...`
 - Inspect config and profiles (redacted):
   - `openrouter config --list`
+
+### Changing Provider, Domain, or Model
+
+- Use `openrouter init` to choose or change provider, domain, and default model. Re‑run `init` any time to update these defaults.
 
 ## Project‑Local Overrides (.openrouterrc)
 
@@ -84,14 +87,17 @@ Examples:
 
 CI/CD: store the key as a secret and inject it into the job environment.
 
+Auto‑init behavior
+- In interactive terminals, `openrouter ask|test|repl` will trigger `openrouter init` if no API key is available. Pass `--no-init` to skip.
+
 ## CLI Flags (Per‑Command)
 
 - Pick a profile for a command:
   - `openrouter test --profile dev`
   - `openrouter ask --profile dev "Hello world"`
   - `openrouter repl --profile dev`
-- Override model/domain for a single invocation:
-  - `openrouter ask -m other-model "Hello"`
+  
+Note: To change the default domain or model, re‑run `openrouter init`. Per‑invocation model overrides have been removed to keep usage simple.
 
 ## Putting It Together: Precedence
 
@@ -129,6 +135,10 @@ Example resolution for `openrouter ask --profile dev "Hi"` in a project with `.o
   - `openrouter ask --profile dev "Hello"`
 - Project override file:
   - `./.openrouterrc` (JSON/YAML)
+  - Tip: This is optional and best for users running the CLI inside a project directory. For global one‑off use, rely on `openrouter init` defaults.
 - API key env vars:
   - `OPENROUTER_API_KEY` (preferred), `OPENAI_API_KEY`
-
+- Run the wizard:
+  - `openrouter init`
+- Apply a provider preset:
+  - `openrouter config --provider openrouter|openai|custom`

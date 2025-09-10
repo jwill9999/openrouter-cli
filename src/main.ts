@@ -1,10 +1,13 @@
 import { Command } from "commander";
 import { readConfig, updateConfig, ensureConfigDir, updateProfile, resolveConfig } from "./shared/config.js";
-import { getApiKey, getDefaultConfig, maskKey } from "./shared/env.js";
+import type { CliConfig } from "./shared/config.js";
+import { getDefaultConfig, maskKey } from "./shared/env.js";
 import { testConnection, askOnce, ChatOptions, streamChat } from "./shared/openrouter.js";
+import { renderText, OutputFormat } from "./shared/format.js";
 import { startRepl } from "./repl.js";
+import { runInitWizard } from "./shared/init.js";
 
-export async function main() {
+export function buildProgram() {
   const program = new Command();
   program
     .name("openrouter")
@@ -13,13 +16,11 @@ export async function main() {
 
   program
     .command("config")
-    .description("Show or update configuration")
-    .option("--domain <url>", "Set API domain (OpenAI-compatible)")
-    .option("--model <name>", "Set default model")
+    .description("Show configuration or update API key")
     .option("--api-key <key>", "Persist API key (use env for ephemeral)")
     .option("--profile <name>", "Select profile to read/update (default: base)")
     .option("--list", "List profiles and current base config")
-    .action(async (opts: { domain?: string; model?: string; apiKey?: string; profile?: string; list?: boolean }) => {
+    .action(async (opts: { apiKey?: string; profile?: string; list?: boolean }) => {
       await ensureConfigDir();
       if (opts.list) {
         const cfg = await readConfig();
@@ -34,15 +35,13 @@ export async function main() {
         return;
       }
 
-      const changes: Record<string, unknown> = {};
-
-      if (opts.domain) changes.domain = opts.domain;
-      if (opts.model) changes.model = opts.model;
+      const changes: Partial<CliConfig> = {};
+      // Only support updating API key here; domain/model are managed via `init`
       if (opts.apiKey) changes.apiKey = opts.apiKey; // never log this
 
       if (Object.keys(changes).length > 0) {
         if (opts.profile) {
-          await updateProfile(opts.profile, changes as any);
+          await updateProfile(opts.profile, changes);
         } else {
           await updateConfig(changes);
         }
@@ -57,14 +56,13 @@ export async function main() {
     .command("test")
     .description("Check API connectivity via /models")
     .option("--profile <name>", "Use a named profile")
-    .action(async (opts: { profile?: string }) => {
+    .option("--no-init", "Do not run interactive init when missing API key")
+    .action(async (opts: { profile?: string; init?: boolean }) => {
       const cfg = await resolveConfig(opts.profile);
-      const apiKey = getApiKey(await readConfig()) || cfg.apiKey;
-      if (!apiKey) {
-        console.error("Missing API key. Set OPENROUTER_API_KEY / OPENAI_API_KEY or 'openrouter config --api-key'.");
-        process.exitCode = 2;
-        return;
-      }
+      const { ensureApiKey } = await import('./shared/auth.js');
+      const r = await ensureApiKey(opts.profile, opts.init);
+      if (!('ok' in r) || !r.ok) { console.error(r.message); process.exitCode = 2; return; }
+      const apiKey = r.apiKey;
       const domain = cfg.domain ?? getDefaultConfig().domain;
       const res = await testConnection({ domain, apiKey });
       console.log(JSON.stringify(res, null, 2));
@@ -72,22 +70,22 @@ export async function main() {
 
   program
     .command("ask")
-    .description("One-shot question to the chat model")
+    .description("One-shot question. Use 'openrouter init' to change defaults.")
     .argument("<prompt>", "User prompt")
-    .option("-m, --model <name>", "Override model")
     .option("-s, --system <text>", "System prompt")
+    .option("--format <mode>", "Output format: auto|plain|md (default: auto)")
     .option("--profile <name>", "Use a named profile")
     .option("--no-stream", "Disable streaming output")
-    .action(async (prompt: string, options: { model?: string; system?: string; stream?: boolean; profile?: string }) => {
+    .option("--no-init", "Do not run interactive init when missing API key")
+    .action(async (prompt: string, options: { system?: string; stream?: boolean; profile?: string; format?: OutputFormat; init?: boolean }) => {
       const eff = await resolveConfig(options.profile);
-      const apiKey = getApiKey(await readConfig()) || eff.apiKey;
-      if (!apiKey) {
-        console.error("Missing API key. Set OPENROUTER_API_KEY / OPENAI_API_KEY or 'openrouter config --api-key'.");
-        process.exitCode = 2;
-        return;
-      }
-      const model = options.model || eff.model || getDefaultConfig().model;
+      const { ensureApiKey } = await import('./shared/auth.js');
+      const r = await ensureApiKey(options.profile, options.init);
+      if (!('ok' in r) || !r.ok) { console.error(r.message); process.exitCode = 2; return; }
+      const apiKey = r.apiKey;
+      const model = eff.model || getDefaultConfig().model;
       const domain = eff.domain || getDefaultConfig().domain;
+      const format: OutputFormat = (options.format as OutputFormat) || "auto";
       const chatOptions: ChatOptions = {
         domain,
         apiKey,
@@ -100,23 +98,23 @@ export async function main() {
         process.stdout.write("\n");
       } else {
         const out = await askOnce(chatOptions, [{ role: "user", content: prompt }]);
-        console.log(out);
+        const pretty = renderText(out, { format, streaming: false });
+        console.log(pretty);
       }
     });
 
   program
     .command("repl")
-    .description("Interactive chat with streaming. Commands: exit, /model, /system")
+    .description("Interactive chat with streaming. Commands: exit, /model, /system, /format, /stream")
     .option("-m, --model <name>", "Override model for this session")
     .option("--profile <name>", "Use a named profile")
-    .action(async (options: { model?: string; profile?: string }) => {
+    .option("--no-init", "Do not run interactive init when missing API key")
+    .action(async (options: { model?: string; profile?: string; init?: boolean }) => {
       const eff = await resolveConfig(options.profile);
-      const apiKey = getApiKey(await readConfig()) || eff.apiKey;
-      if (!apiKey) {
-        console.error("Missing API key. Set OPENROUTER_API_KEY / OPENAI_API_KEY or 'openrouter config --api-key'.");
-        process.exitCode = 2;
-        return;
-      }
+      const { ensureApiKey } = await import('./shared/auth.js');
+      const r = await ensureApiKey(options.profile, options.init);
+      if (!('ok' in r) || !r.ok) { console.error(r.message); process.exitCode = 2; return; }
+      const apiKey = r.apiKey;
       await startRepl({
         apiKey,
         domain: eff.domain ?? getDefaultConfig().domain,
@@ -124,5 +122,17 @@ export async function main() {
       });
     });
 
+  program
+    .command("init")
+    .description("Interactive first-time setup (provider, domain, key, model, profile)")
+    .action(async () => {
+      await runInitWizard();
+    });
+
+  return program;
+}
+
+export async function main() {
+  const program = buildProgram();
   await program.parseAsync(process.argv);
 }

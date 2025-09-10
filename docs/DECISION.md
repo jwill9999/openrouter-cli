@@ -123,35 +123,39 @@ This document tracks major design choices, scope, and phased roadmap for the **o
   - ESLint on staged files pre-commit; tests pre-push.
 
 
-## Iteration 2 (v0.2.0) — Plan
+## Iteration 2 (v0.2.0) — Status
 
 ### Scope
-- Project-local `.openrouterrc` overrides.
-- Profiles (e.g. `--profile dev`) with per-profile domain/model/system overrides.
+- Project-local `.openrouterrc` overrides (JSON and YAML).
+- Profiles (e.g. `--profile dev`) with per-profile overrides.
+- Init-driven defaults: provider/domain/model set via `openrouter init` (re-run to change).
 
 ### Design
-- Config precedence:
-  - CLI flags > env vars > project `.openrouterrc` > global config.
+- Config precedence (effective):
+  - CLI flags (e.g., `--profile`, output/stream options) > env vars (API key) > project `.openrouterrc` (JSON/YAML) > global config > built-in defaults.
 - Files:
-  - Global: `~/.config/openrouter-cli/config.json` (existing)
-  - Project: `./.openrouterrc` (JSON or YAML; v0.2: JSON only)
+  - Global: `~/.config/openrouter-cli/config.json` (stores base values, optional profiles)
+  - Project: `./.openrouterrc` or `.openrouterrc.{json,yaml,yml}` (overrides domain/model per project)
 - Profiles:
-  - Specify via `--profile <name>` on CLI and REPL.
-  - Global and project configs can define `profiles` object; missing keys fall back to base config.
+  - Select via `--profile <name>` on CLI and REPL.
+  - Global config can define `profiles` object; missing keys fall back to base config.
 
 ### CLI/UX
-- Add `--profile` to `ask`, `repl`, and `test`.
-- `config` command: support reading/writing base values only in v0.2; profiles are read-only initially.
+- `--profile` available on `ask`, `repl`, and `test`.
+- `init` is the only way to change provider/domain/model (interactive wizard; auto-prompts in TTY when key is missing unless `--no-init`).
+- `config` is narrowed to listing and API key persistence (base or profile); domain/model/provider flags removed.
+- Removed per-invocation model override (`ask -m`).
 
 ### Security
 - Same key-handling guarantees; never log secrets.
+- Config file written with chmod 600 where possible; keys redacted in `--list` output.
 - Project file is not created automatically; only read if present.
 
 ### Tasks
-- Implement loader for `.openrouterrc` with merge logic and precedence. ✅ Completed
+- Implement loader for `.openrouterrc` (JSON/YAML) with merge logic and precedence. ✅ Completed
 - Add profile resolver with fallback. ✅ Completed
-- Update help/docs and examples. ✅ Completed
-- Add unit tests for precedence and profiles. ⏳ Partial (URL join test added; profile tests next)
+- Update help/docs and examples (consumer-focused README, CONFIGURATION). ✅ Completed
+- Add tests: URL join; YAML rc precedence; config redaction; streaming SSE parsing; ask error handling; CLI help shape. ✅ Completed
 
 ### Out of Scope for v0.2
-- YAML/TOML formats, keychain storage, remote profiles.
+- TOML formats, keychain storage, remote profiles, tool plugins/MCP phases.
