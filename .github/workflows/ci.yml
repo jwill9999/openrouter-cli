@@ -21,4 +21,4 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: npm run build
       - run: npm run lint --if-present
-      - run: npm test
+      - run: npm run test:coverage

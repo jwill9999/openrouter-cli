@@ -15,13 +15,14 @@
     "dev": "node --loader ts-node/esm src/index.ts",
     "lint": "eslint \"src/**/*.{js,ts,mjs,cjs}\"",
     "test": "vitest run --reporter=default",
+    "test:coverage": "vitest run --reporter=default --coverage",
     "test:watch": "vitest --watch",
-    "prepare": "husky",
+    "dev:hooks": "husky install",
     "prepublishOnly": "npm run build",
     "prepack": "npm run build && node scripts/prepack.mjs",
-    "postinstall": "husky install",
     "release": "semantic-release",
-    "commit": "cz"
+    "commit": "cz",
+    "pack:dry": "npm pack --dry-run --cache ./.npm-cache"
   },
   "keywords": [
     "openrouter",
@@ -53,6 +54,7 @@
     "js-yaml": "^4.1.0"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^2.1.1",
     "@commitlint/cli": "^19.4.0",
     "@commitlint/config-conventional": "^19.4.0",
     "@commitlint/cz-commitlint": "^19.4.0",
