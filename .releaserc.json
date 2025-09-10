@@ -1,9 +1,6 @@
 {
   "branches": [
-    "main",
-    { "name": "story/*", "prerelease": "story", "channel": "beta" },
-    { "name": "feature/*", "prerelease": "feature", "channel": "beta" },
-    { "name": "release/*", "prerelease": "release", "channel": "beta" }
+    "main"
   ],
   "plugins": [
     ["@semantic-release/commit-analyzer", { "preset": "conventionalcommits" }],
