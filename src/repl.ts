@@ -1,6 +1,7 @@
 import readline from "node:readline";
 import { streamChat, askOnce } from "./shared/openrouter.js";
 import { renderText, OutputFormat } from "./shared/format.js";
+import { styledPrompt, tipBox } from "./shared/ui.js";
 
 type ReplOptions = {
   apiKey: string;
@@ -16,11 +17,11 @@ export async function startRepl(opts: ReplOptions) {
   const history: { role: "user" | "assistant"; content: string }[] = [];
 
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: true });
-  const prompt = () => rl.setPrompt(`(${currentModel}) > `);
+  const prompt = () => rl.setPrompt(styledPrompt(currentModel));
   prompt();
   rl.prompt();
 
-  console.log("Type 'exit' to quit. Commands: /model <name>, /system <text>, /format <md|plain>, /stream <on|off>. Use 'openrouter init' to change defaults.");
+  console.log(tipBox());
 
   rl.on("line", async (line) => {
     const input = line.trim();

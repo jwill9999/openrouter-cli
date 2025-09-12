@@ -6,6 +6,7 @@ import { testConnection, askOnce, ChatOptions, streamChat } from "./shared/openr
 import { renderText, OutputFormat } from "./shared/format.js";
 import { startRepl } from "./repl.js";
 import { runInitWizard } from "./shared/init.js";
+import { attachStyledHelp, answerHeader, infoFooter } from "./shared/ui.js";
 
 export function buildProgram() {
   const program = new Command();
@@ -13,6 +14,9 @@ export function buildProgram() {
     .name("openrouter")
     .description("OpenRouter CLI")
     .version("0.1.0");
+
+  // Attach styled help (banner + examples)
+  attachStyledHelp(program);
 
   program
     .command("config")
@@ -99,7 +103,10 @@ export function buildProgram() {
       } else {
         const out = await askOnce(chatOptions, [{ role: "user", content: prompt }]);
         const pretty = renderText(out, { format, streaming: false });
-        console.log(pretty);
+        // Styled header and footer around non-stream result
+        process.stdout.write(answerHeader(model) + "\n");
+        process.stdout.write(pretty + "\n");
+        process.stdout.write(infoFooter({ model, domain }) + "\n");
       }
     });
 
