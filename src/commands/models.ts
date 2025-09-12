@@ -70,7 +70,6 @@ export function registerModelsCommand(program: Command) {
         const table = new Table({ head: ['ID', 'Name'] });
         const fallback = eff.model || getDefaultConfig().model || 'openrouter/auto';
         table.push([fallback, '']);
-        console.log('error', e);
         console.log(table.toString());
       }
     });
