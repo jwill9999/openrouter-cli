@@ -21,3 +21,11 @@ coverage/
 .openrouterrc.json
 .openrouterrc.yaml
 .openrouterrc.yml
+
+# Local TODO notes (not committed)
+TODO.local.md
+
+# Local logs (not committed)
+*.log
+logs/
+src/shared/**/*.log

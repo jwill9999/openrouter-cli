@@ -50,8 +50,7 @@ export async function updateProfile(profile: string, patch: Partial<CliConfig>) 
   const current = await readConfig();
   const profiles = { ...(current.profiles || {}) } as NonNullable<CliConfig['profiles']>;
   const cur = profiles[profile] || {};
-
- // eslint-disable-next-line no-unused-vars
+  
   const { profiles: _, ...safePatch } = patch;
   profiles[profile] = { ...cur, ...safePatch };
   await updateConfig({ profiles });

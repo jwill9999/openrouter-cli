@@ -1,11 +1,13 @@
 import boxen from 'boxen';
 import chalk from 'chalk';
+import ora from 'ora';
 
 // Color/TTY detection
 export function isColorSupported(): boolean {
   const noColor = !!process.env.NO_COLOR;
-  const isTty = !!process.stdout && !!process.stdout.isTTY;
-  return !noColor && isTty;
+  const outTty = !!process.stdout && !!process.stdout.isTTY;
+  const errTty = !!(process as any).stderr && !!(process as any).stderr.isTTY;
+  return !noColor && (outTty || errTty);
 }
 
 const color = isColorSupported();
@@ -97,4 +99,10 @@ export function tipBox(): string {
     palette.dim("Use 'openrouter init' to change defaults."),
   ].join('\n');
   return boxen(lines, { padding: 1, borderStyle: 'single' });
+}
+
+export function showSpinner(label: string) {
+  const enabled = isColorSupported();
+  const spinner = ora({ text: palette.dim(label), isEnabled: enabled, stream: process.stderr as any });
+  return spinner;
 }

@@ -6,7 +6,8 @@ import { testConnection, askOnce, ChatOptions, streamChat } from "./shared/openr
 import { renderText, OutputFormat } from "./shared/format.js";
 import { startRepl } from "./repl.js";
 import { runInitWizard } from "./shared/init.js";
-import { attachStyledHelp, answerHeader, infoFooter } from "./shared/ui.js";
+import { attachStyledHelp, answerHeader, infoFooter, showSpinner } from "./shared/ui.js";
+import { registerModelsCommand } from "./commands/models.js";
 
 export function buildProgram() {
   const program = new Command();
@@ -81,7 +82,7 @@ export function buildProgram() {
     .option("--profile <name>", "Use a named profile")
     .option("--no-stream", "Disable streaming output")
     .option("--no-init", "Do not run interactive init when missing API key")
-    .action(async (prompt: string, options: { system?: string; stream?: boolean; profile?: string; format?: OutputFormat; init?: boolean }) => {
+    .action(async function (this: import('commander').Command, prompt: string, options: { system?: string; stream?: boolean; profile?: string; format?: OutputFormat; init?: boolean }) {
       const eff = await resolveConfig(options.profile);
       const { ensureApiKey } = await import('./shared/auth.js');
       const r = await ensureApiKey(options.profile, options.init);
@@ -89,24 +90,44 @@ export function buildProgram() {
       const apiKey = r.apiKey;
       const model = eff.model || getDefaultConfig().model;
       const domain = eff.domain || getDefaultConfig().domain;
-      const format: OutputFormat = (options.format as OutputFormat) || "auto";
+      const format: OutputFormat = (options.format as OutputFormat) || "md";
+      // Default streaming OFF unless user explicitly passed --no-stream/--stream (we honor only explicit input for stream)
+      const src = (this as any).getOptionValueSource?.('stream');
+      const streamExplicit = src === 'cli' || src === 'env';
       const chatOptions: ChatOptions = {
         domain,
         apiKey,
         model,
         system: options.system,
-        stream: options.stream !== false,
+        stream: streamExplicit ? options.stream !== false : false,
       };
       if (chatOptions.stream) {
-        await streamChat(chatOptions, [{ role: "user", content: prompt }]);
-        process.stdout.write("\n");
+        const spinner = showSpinner('Thinking');
+        let stopped = false;
+        try {
+          spinner.start();
+          await streamChat({
+            ...chatOptions,
+            onFirstToken: () => { if (!stopped) { spinner.stop(); stopped = true; } },
+            onDone: () => { if (!stopped) { spinner.stop(); stopped = true; } },
+          }, [{ role: "user", content: prompt }]);
+          process.stdout.write("\n");
+        } finally {
+          if (!stopped) { spinner.stop(); }
+        }
       } else {
-        const out = await askOnce(chatOptions, [{ role: "user", content: prompt }]);
-        const pretty = renderText(out, { format, streaming: false });
-        // Styled header and footer around non-stream result
-        process.stdout.write(answerHeader(model) + "\n");
-        process.stdout.write(pretty + "\n");
-        process.stdout.write(infoFooter({ model, domain }) + "\n");
+        const spinner = showSpinner('Thinking…');
+        try {
+          spinner.start();
+          const out = await askOnce(chatOptions, [{ role: "user", content: prompt }]);
+          const pretty = renderText(out, { format, streaming: false });
+          // Styled header and footer around non-stream result
+          process.stdout.write(answerHeader(model) + "\n");
+          process.stdout.write(pretty + "\n");
+          process.stdout.write(infoFooter({ model, domain }) + "\n");
+        } finally {
+          spinner.stop();
+        }
       }
     });
 
@@ -135,6 +156,9 @@ export function buildProgram() {
     .action(async () => {
       await runInitWizard();
     });
+
+  // Additional commands
+  registerModelsCommand(program);
 
   return program;
 }

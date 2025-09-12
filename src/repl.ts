@@ -1,6 +1,8 @@
 import readline from "node:readline";
 import { streamChat, askOnce } from "./shared/openrouter.js";
 import { renderText, OutputFormat } from "./shared/format.js";
+import { showSpinner } from "./shared/ui.js";
+import { logError } from "./shared/logger.js";
 import { styledPrompt, tipBox } from "./shared/ui.js";
 
 type ReplOptions = {
@@ -12,16 +14,22 @@ type ReplOptions = {
 export async function startRepl(opts: ReplOptions) {
   let currentModel = opts.initialModel;
   let system: string | undefined;
-  let format: OutputFormat = "plain"; // default plain for streaming sessions
-  let streaming = true;
+  let format: OutputFormat = "md"; // default rendered markdown for non-stream outputs
+  let streaming = false;
   const history: { role: "user" | "assistant"; content: string }[] = [];
 
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: true });
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: true, prompt: '', historySize: 100, escapeCodeTimeout: 50 });
   const prompt = () => rl.setPrompt(styledPrompt(currentModel));
   prompt();
   rl.prompt();
 
   console.log(tipBox());
+
+  // Keep REPL alive on Ctrl+C (SIGINT); show prompt again
+  rl.on('SIGINT', () => {
+    process.stdout.write("\n");
+    rl.prompt();
+  });
 
   rl.on("line", async (line) => {
     const input = line.trim();
@@ -70,19 +78,41 @@ export async function startRepl(opts: ReplOptions) {
     history.push(userMsg);
     try {
       if (streaming) {
-        await streamChat({ domain: opts.domain, apiKey: opts.apiKey, model: currentModel, system, stream: true }, [
-          ...history,
-        ]);
-        process.stdout.write("\n");
+        const spinner = showSpinner('Thinking');
+        let stopped = false;
+        try {
+          spinner.start();
+          await streamChat({
+            domain: opts.domain,
+            apiKey: opts.apiKey,
+            model: currentModel,
+            system,
+            stream: true,
+            onFirstToken: () => { if (!stopped) { spinner.stop(); stopped = true; } },
+            onDone: () => { if (!stopped) { spinner.stop(); stopped = true; } },
+          }, [
+            ...history,
+          ]);
+          process.stdout.write("\n");
+        } finally {
+          if (!stopped) { spinner.stop(); }
+        }
       } else {
-        const text = await askOnce({ domain: opts.domain, apiKey: opts.apiKey, model: currentModel, system, stream: false }, [
-          ...history,
-        ]);
-        const pretty = renderText(text, { format, streaming: false });
-        process.stdout.write(pretty + "\n");
+        const spinner = showSpinner('Thinking…');
+        try {
+          spinner.start();
+          const text = await askOnce({ domain: opts.domain, apiKey: opts.apiKey, model: currentModel, system, stream: false }, [
+            ...history,
+          ]);
+          const pretty = renderText(text, { format, streaming: false });
+          process.stdout.write(pretty + "\n");
+        } finally {
+          spinner.stop();
+        }
       }
     } catch (err) {
-      console.error(err instanceof Error ? err.message : String(err));
+      await logError(err, 'repl');
+      console.error('A technical issue occurred. Please try again.');
     }
     rl.prompt();
   });
