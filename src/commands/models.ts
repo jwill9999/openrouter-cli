@@ -71,6 +71,9 @@ export function registerModelsCommand(program: Command) {
         const fallback = eff.model || getDefaultConfig().model || 'openrouter/auto';
         table.push([fallback, '']);
         console.log(table.toString());
+        if (process.env.ORCLI_DEBUG) {
+          console.error('non-interactive fallback:', e);
+        }
       }
     });
 }
