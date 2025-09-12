@@ -43,7 +43,17 @@ export default [
     },
     rules: {
       "no-console": "off",
-      "no-empty": ["error", { "allowEmptyCatch": true }]
+      "no-empty": ["error", { "allowEmptyCatch": true }],
+      // Use the TS-aware rule and disable the base one for TS files
+      "no-unused-vars": "off",
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          "args": "after-used",
+          "argsIgnorePattern": "^_",
+          "varsIgnorePattern": "^_"
+        }
+      ]
     }
   }
 ];

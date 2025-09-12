@@ -40,11 +40,16 @@ export function toAnsiMarkdown(md: string): string {
     // Lists
     if (/^\s*[-*+]\s+/.test(line)) {
       line = line.replace(/^\s*[-*+]\s+/, "  • ");
-      out.push(line);
-      continue;
+      // fall through for inline formatting below
     }
     // Inline code: `code`
     line = line.replace(/`([^`]+)`/g, (_, m1: string) => ansiDim(m1));
+    // Inline bold: **text** or __text__
+    line = line.replace(/\*\*([^*]+)\*\*/g, (_, m1: string) => ansiBold(m1));
+    line = line.replace(/__([^_]+)__/g, (_, m1: string) => ansiBold(m1));
+    // Inline italic: *text* or _text_ (basic, non-greedy, ignore escaped)
+    line = line.replace(/(^|[^\\])\*([^*\s][^*]*?)\*(?!\*)/g, (_m, p1: string, m1: string) => p1 + ansiItalic(m1));
+    line = line.replace(/(^|[^\\])_([^_\s][^_]*)_(?!_)/g, (_m, p1: string, m1: string) => p1 + ansiItalic(m1));
     out.push(line);
   }
   return out.join("\n");
@@ -60,4 +65,6 @@ function ansiDim(s: string) {
 function ansiCyan(s: string) {
   return "\x1b[36m" + s + "\x1b[39m";
 }
-
+function ansiItalic(s: string) {
+  return "\x1b[3m" + s + "\x1b[23m";
+}

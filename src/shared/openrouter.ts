@@ -6,6 +6,8 @@ export type ChatOptions = {
   model: string;
   system?: string;
   stream?: boolean;
+  onFirstToken?: () => void; // optional UI hook
+  onDone?: () => void;       // optional UI hook
 };
 
 export async function testConnection({ domain, apiKey }: { domain: string; apiKey: string }) {
@@ -20,6 +22,20 @@ export async function testConnection({ domain, apiKey }: { domain: string; apiKe
     throw new Error(`HTTP ${res.status} ${res.statusText}: ${JSON.stringify(body)}`);
   }
   return await safeJson(res);
+}
+
+export async function listModels(opts: { domain: string; apiKey?: string }): Promise<{ data: any[] }>
+{
+  const url = joinUrl(opts.domain, "models");
+  const headers: Record<string, string> = {};
+  if (opts.apiKey) headers.Authorization = `Bearer ${opts.apiKey}`;
+  const res = await fetch(url, { headers });
+  if (!res.ok) {
+    const body = await safeJson(res);
+    throw new Error(`HTTP ${res.status} ${res.statusText}: ${JSON.stringify(body)}`);
+  }
+  const json = await safeJson(res);
+  return typeof json === 'object' && json && 'data' in (json as any) ? (json as any) : { data: [] };
 }
 
 export async function askOnce(opts: ChatOptions, messages: Message[]): Promise<string> {
@@ -68,6 +84,7 @@ export async function streamChat(opts: ChatOptions, messages: Message[]) {
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
+  let notified = false;
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
@@ -84,7 +101,11 @@ export async function streamChat(opts: ChatOptions, messages: Message[]) {
         try {
           const evt = JSON.parse(data);
           const delta: string | undefined = evt?.choices?.[0]?.delta?.content;
-          if (delta) process.stdout.write(delta);
+          if (delta) {
+            if (!notified && opts.onFirstToken) { try { opts.onFirstToken(); } catch {} }
+            notified = true;
+            process.stdout.write(delta);
+          }
         } catch {}
       }
     }
@@ -93,9 +114,14 @@ export async function streamChat(opts: ChatOptions, messages: Message[]) {
     try {
       const evt = JSON.parse(buffer.replace(/^data:\s*/, ""));
       const delta: string | undefined = evt?.choices?.[0]?.delta?.content;
-      if (delta) process.stdout.write(delta);
+      if (delta) {
+        if (!notified && opts.onFirstToken) { try { opts.onFirstToken(); } catch {} }
+        notified = true;
+        process.stdout.write(delta);
+      }
     } catch {}
   }
+  if (opts.onDone) { try { opts.onDone(); } catch {} }
 }
 
 function normalizeMessages(opts: ChatOptions, messages: Message[]) {
