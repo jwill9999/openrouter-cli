@@ -86,9 +86,11 @@ jobs:
           PKG=$(node -p "require('./package.json').name")
           VER=$(node -p "require('./package.json').version")
           TAG="v$VER"
+          TYPE="${{ steps.release-type.outputs.type }}"
+          TYPE_UPPER=$(echo "$TYPE" | tr '[:lower:]' '[:upper:]')
 
           # Create GitHub release
           gh release create "$TAG" \
             --title "$TAG" \
-            --notes "**${{ steps.release-type.outputs.type | upper }} Release** - ${{ steps.release-type.outputs.type | upper }} version $VER" \
+            --notes "**${TYPE_UPPER} Release** - ${TYPE_UPPER} version $VER" \
             --prerelease
