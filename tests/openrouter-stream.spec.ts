@@ -15,8 +15,8 @@ describe('streamChat SSE parsing', () => {
   it('writes deltas to stdout for chunks and stops at [DONE]', async () => {
     const chunks = [
       'data: {"choices":[{"delta":{"content":"Hello "}}]}\n\n' +
-      'data: {"choices":[{"delta":{"content":"world"}}]}\n\n',
-      'data: [DONE]\n\n'
+        'data: {"choices":[{"delta":{"content":"world"}}]}\n\n',
+      'data: [DONE]\n\n',
     ];
     const reader = {
       i: 0,
@@ -26,11 +26,11 @@ describe('streamChat SSE parsing', () => {
           return { done: false, value: v };
         }
         return { done: true };
-      }
+      },
     };
     globalThis.fetch = (async () => ({
       ok: true,
-      body: { getReader: () => reader }
+      body: { getReader: () => reader },
     })) as any;
 
     const writes: string[] = [];
@@ -42,7 +42,12 @@ describe('streamChat SSE parsing', () => {
     };
 
     try {
-      const opts: ChatOptions = { domain: 'https://example.com/v1', apiKey: 'sk', model: 'm', stream: true };
+      const opts: ChatOptions = {
+        domain: 'https://example.com/v1',
+        apiKey: 'sk',
+        model: 'm',
+        stream: true,
+      };
       await streamChat(opts, [{ role: 'user', content: 'hi' }]);
     } finally {
       process.stdout.write = origWrite;

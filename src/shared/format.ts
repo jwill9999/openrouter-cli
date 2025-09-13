@@ -1,11 +1,14 @@
-export type OutputFormat = "auto" | "plain" | "md";
+export type OutputFormat = 'auto' | 'plain' | 'md';
 
 // Very small markdown → ANSI formatter (headings, lists, code)
-export function renderText(input: string, opts: { format: OutputFormat; streaming: boolean }): string {
+export function renderText(
+  input: string,
+  opts: { format: OutputFormat; streaming: boolean }
+): string {
   const mode = opts.format;
   if (opts.streaming) return input; // keep streaming plain for responsiveness
-  if (mode === "plain") return input;
-  if (mode === "md" || mode === "auto") return toAnsiMarkdown(input);
+  if (mode === 'plain') return input;
+  if (mode === 'md' || mode === 'auto') return toAnsiMarkdown(input);
   return input;
 }
 
@@ -17,29 +20,29 @@ export function toAnsiMarkdown(md: string): string {
     let line = lines[i];
     if (/^```/.test(line.trim())) {
       inFence = !inFence;
-      out.push(ansiDim(""));
+      out.push(ansiDim(''));
       continue;
     }
     if (inFence) {
-      out.push(ansiCyan("  " + line));
+      out.push(ansiCyan('  ' + line));
       continue;
     }
     // Headings
     if (/^###\s+/.test(line)) {
-      out.push(ansiBold(line.replace(/^###\s+/, "").trim()));
+      out.push(ansiBold(line.replace(/^###\s+/, '').trim()));
       continue;
     }
     if (/^##\s+/.test(line)) {
-      out.push(ansiBold(line.replace(/^##\s+/, "").trim()));
+      out.push(ansiBold(line.replace(/^##\s+/, '').trim()));
       continue;
     }
     if (/^#\s+/.test(line)) {
-      out.push(ansiBold(line.replace(/^#\s+/, "").trim()));
+      out.push(ansiBold(line.replace(/^#\s+/, '').trim()));
       continue;
     }
     // Lists
     if (/^\s*[-*+]\s+/.test(line)) {
-      line = line.replace(/^\s*[-*+]\s+/, "  • ");
+      line = line.replace(/^\s*[-*+]\s+/, '  • ');
       // fall through for inline formatting below
     }
     // Inline code: `code`
@@ -48,23 +51,29 @@ export function toAnsiMarkdown(md: string): string {
     line = line.replace(/\*\*([^*]+)\*\*/g, (_, m1: string) => ansiBold(m1));
     line = line.replace(/__([^_]+)__/g, (_, m1: string) => ansiBold(m1));
     // Inline italic: *text* or _text_ (basic, non-greedy, ignore escaped)
-    line = line.replace(/(^|[^\\])\*([^*\s][^*]*?)\*(?!\*)/g, (_m, p1: string, m1: string) => p1 + ansiItalic(m1));
-    line = line.replace(/(^|[^\\])_([^_\s][^_]*)_(?!_)/g, (_m, p1: string, m1: string) => p1 + ansiItalic(m1));
+    line = line.replace(
+      /(^|[^\\])\*([^*\s][^*]*?)\*(?!\*)/g,
+      (_m, p1: string, m1: string) => p1 + ansiItalic(m1)
+    );
+    line = line.replace(
+      /(^|[^\\])_([^_\s][^_]*)_(?!_)/g,
+      (_m, p1: string, m1: string) => p1 + ansiItalic(m1)
+    );
     out.push(line);
   }
-  return out.join("\n");
+  return out.join('\n');
 }
 
 // Minimal ANSI helpers
 function ansiBold(s: string) {
-  return "\x1b[1m" + s + "\x1b[22m";
+  return '\x1b[1m' + s + '\x1b[22m';
 }
 function ansiDim(s: string) {
-  return "\x1b[2m" + s + "\x1b[22m";
+  return '\x1b[2m' + s + '\x1b[22m';
 }
 function ansiCyan(s: string) {
-  return "\x1b[36m" + s + "\x1b[39m";
+  return '\x1b[36m' + s + '\x1b[39m';
 }
 function ansiItalic(s: string) {
-  return "\x1b[3m" + s + "\x1b[23m";
+  return '\x1b[3m' + s + '\x1b[23m';
 }

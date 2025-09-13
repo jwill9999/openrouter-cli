@@ -1,15 +1,20 @@
 import readline from 'node:readline';
-import { updateConfig, updateProfile } from './config.js';
+import { updateConfig, updateProfile, readConfig } from './config.js';
 import type { CliConfig } from './config.js';
-import { getDefaultConfig } from './env.js';
+import { getDefaultConfig, getApiKey } from './env.js';
 import { testConnection } from './openrouter.js';
 import { fetchModelsCached, fuzzyIds } from './models.js';
-import { banner } from './ui.js';
+import { banner, warnBox } from './ui.js';
 
 type Provider = 'openrouter' | 'openai' | 'custom';
 
 function choosePreset(p: Provider) {
-  if (p === 'openai') return { provider: 'openai' as const, domain: 'https://api.openai.com/v1', model: 'gpt-4o-mini' };
+  if (p === 'openai')
+    return {
+      provider: 'openai' as const,
+      domain: 'https://api.openai.com/v1',
+      model: 'gpt-4o-mini',
+    };
   if (p === 'custom') return { provider: 'custom' as const, domain: '', model: '' };
   // default: openrouter
   const d = getDefaultConfig();
@@ -17,7 +22,11 @@ function choosePreset(p: Provider) {
 }
 
 export async function runInitWizard(): Promise<boolean> {
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: true });
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    terminal: true,
+  });
   const ask = (q: string) => new Promise<string>((res) => rl.question(q, (ans) => res(ans.trim())));
   const askHidden = (q: string) => ask(q); // fallback: no masking in this environment
 
@@ -25,13 +34,19 @@ export async function runInitWizard(): Promise<boolean> {
   const provider: Provider = 'openrouter';
   const preset = choosePreset(provider);
 
-  const domain = (await ask(`API domain (default: ${preset.domain || 'none'}): `)) || preset.domain;
-  let model = (await ask(`Default model (default: ${preset.model || 'none'}): `)) || preset.model;
-
-  let apiKey = process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY || '';
-  if (!apiKey) {
-    apiKey = await askHidden('API key (leave blank to skip): ');
+  // For MCP we only support OpenRouter, so use the default domain without prompting
+  const domain = preset.domain;
+  if (process.stdout.isTTY) {
+    console.log(`Using API domain: ${domain}`);
   }
+  // Prefer interactive fuzzy search for model in TTY; fall back to plain prompt in non-TTY
+  let model = preset.model;
+  if (!process.stdout.isTTY) {
+    model = (await ask(`Default model (default: ${preset.model || 'none'}): `)) || preset.model;
+  }
+
+  let apiKey = getApiKey(await readConfig()) || '';
+  if (!apiKey) apiKey = await askHidden('API key (leave blank to skip): ');
 
   const profile = await ask('Profile name (optional): ');
 
@@ -47,15 +62,15 @@ export async function runInitWizard(): Promise<boolean> {
       try {
         const list = await fetchModelsCached({ domain, apiKey: apiKey || undefined });
         modelsList = list;
-        initial = list.slice(0, 25).map(m => m.id);
+        initial = list.slice(0, 25).map((m) => m.id);
       } catch {}
       const stableSuggest = async (input: string) => {
         const q = input || '';
-        const ids = modelsList.length ? fuzzyIds(q, modelsList as any) : [] as string[];
+        const ids = modelsList.length ? fuzzyIds(q, modelsList as any) : ([] as string[]);
         const withTyped = q && !ids.includes(q) ? [q, ...ids] : ids;
         return toChoices(withTyped.length ? withTyped : initial);
       };
-      const toChoices = (ids: string[]) => ids.map(id => ({ name: id, value: id, message: id }));
+      const toChoices = (ids: string[]) => ids.map((id) => ({ name: id, value: id, message: id }));
       const ans = await promptFn({
         type: 'autocomplete',
         name: 'model',
@@ -85,16 +100,30 @@ export async function runInitWizard(): Promise<boolean> {
     try {
       await testConnection({ domain, apiKey });
       console.log('✓ Connection OK');
-    } catch (e) {
-      console.log('! Connection failed:', e instanceof Error ? e.message : String(e));
+    } catch {
+      console.log(warnBox('Connection failed. Please verify your API key and settings.'));
+      console.log('Visit https://openrouter.ai/keys to create a key.');
+      console.log(
+        "Set via env: export OPENROUTER_API_KEY='sk-...' or persist with: openrouter config --api-key sk-..."
+      );
       const ans = (await ask('Save settings anyway? [y/N]: ')).toLowerCase();
       save = ans === 'y' || ans === 'yes';
     }
+  } else if (!apiKey) {
+    console.log(warnBox('An API key is required to connect.'));
+    console.log('Create a key at https://openrouter.ai/keys');
+    console.log(
+      "Set via env: export OPENROUTER_API_KEY='sk-...' or persist with: openrouter config --api-key sk-..."
+    );
   }
 
   if (save) {
     // Persist selections. If a profile is provided, write under that profile; otherwise write to base config.
-    const changes: Partial<CliConfig> = { provider, domain: domain || undefined, model: model || undefined };
+    const changes: Partial<CliConfig> = {
+      provider,
+      domain: domain || undefined,
+      model: model || undefined,
+    };
     if (apiKey) changes.apiKey = apiKey;
     if (profile) {
       await updateProfile(profile, changes);

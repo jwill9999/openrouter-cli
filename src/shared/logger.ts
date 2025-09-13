@@ -4,7 +4,11 @@ import { ensureConfigDir, paths } from './config.js';
 
 function formatError(err: unknown): string {
   if (err instanceof Error) return err.stack || err.message || String(err);
-  try { return JSON.stringify(err); } catch { return String(err); }
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return String(err);
+  }
 }
 
 export async function logError(err: unknown, context?: string): Promise<void> {
@@ -25,4 +29,3 @@ export async function logError(err: unknown, context?: string): Promise<void> {
     // swallow all logging errors
   }
 }
-

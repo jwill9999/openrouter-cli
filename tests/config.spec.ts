@@ -39,7 +39,11 @@ describe('config precedence and profiles', () => {
   it('merges global base + profile + project rc (project wins)', async () => {
     // Write global base config
     await fs.mkdir(cfgModule.paths.CONFIG_DIR, { recursive: true });
-    await cfgModule.updateConfig({ domain: 'https://global.example/v1', model: 'global-model', apiKey: 'sk-global' });
+    await cfgModule.updateConfig({
+      domain: 'https://global.example/v1',
+      model: 'global-model',
+      apiKey: 'sk-global',
+    });
     await cfgModule.updateProfile('dev', { domain: 'https://dev.example/v1', model: 'dev-model' });
 
     // Write project rc overriding model only

@@ -38,7 +38,9 @@ describe('config --list redaction', () => {
     const program = main.buildProgram();
     let out = '';
     const origLog = console.log;
-    console.log = (s?: any) => { out += (typeof s === 'string' ? s : String(s)); };
+    console.log = (s?: any) => {
+      out += typeof s === 'string' ? s : String(s);
+    };
     try {
       await program.parseAsync(['node', 'cli', 'config', '--list']);
     } finally {

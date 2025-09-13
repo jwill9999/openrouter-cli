@@ -1,6 +1,6 @@
-import fs from "node:fs/promises";
-import path from "node:path";
-import os from "node:os";
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import os from 'node:os';
 
 export type CliConfig = {
   domain?: string;
@@ -10,8 +10,8 @@ export type CliConfig = {
   profiles?: Record<string, Omit<CliConfig, 'profiles'>>;
 };
 
-const CONFIG_DIR = path.join(os.homedir(), ".config", "openrouter-cli");
-const CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
+const CONFIG_DIR = path.join(os.homedir(), '.config', 'openrouter-cli');
+const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
 
 export async function ensureConfigDir() {
   await fs.mkdir(CONFIG_DIR, { recursive: true });
@@ -23,11 +23,11 @@ export async function ensureConfigDir() {
 
 export async function readConfig(): Promise<CliConfig> {
   try {
-    const txt = await fs.readFile(CONFIG_FILE, "utf8");
+    const txt = await fs.readFile(CONFIG_FILE, 'utf8');
     const json = JSON.parse(txt) as CliConfig;
     return json;
   } catch (err: any) {
-    if (err?.code === "ENOENT") return {};
+    if (err?.code === 'ENOENT') return {};
     throw err;
   }
 }
@@ -50,7 +50,6 @@ export async function updateProfile(profile: string, patch: Partial<CliConfig>) 
   const current = await readConfig();
   const profiles = { ...(current.profiles || {}) } as NonNullable<CliConfig['profiles']>;
   const cur = profiles[profile] || {};
-  
   const { profiles: _, ...safePatch } = patch;
   profiles[profile] = { ...cur, ...safePatch };
   await updateConfig({ profiles });
@@ -59,18 +58,18 @@ export async function updateProfile(profile: string, patch: Partial<CliConfig>) 
 // Project-local overrides: .openrouterrc(.json|.yaml|.yml)
 export async function readProjectRc(cwd = process.cwd()): Promise<Partial<CliConfig>> {
   const candidates = [
-    path.join(cwd, ".openrouterrc"),
-    path.join(cwd, ".openrouterrc.json"),
-    path.join(cwd, ".openrouterrc.yaml"),
-    path.join(cwd, ".openrouterrc.yml"),
+    path.join(cwd, '.openrouterrc'),
+    path.join(cwd, '.openrouterrc.json'),
+    path.join(cwd, '.openrouterrc.yaml'),
+    path.join(cwd, '.openrouterrc.yml'),
   ];
   for (const file of candidates) {
     try {
-      const txt = await fs.readFile(file, "utf8");
+      const txt = await fs.readFile(file, 'utf8');
       const parsed = await parseRc(txt, path.extname(file));
       return (parsed || {}) as Partial<CliConfig>;
     } catch (err: any) {
-      if (err?.code === "ENOENT") continue;
+      if (err?.code === 'ENOENT') continue;
       throw err;
     }
   }
@@ -79,8 +78,8 @@ export async function readProjectRc(cwd = process.cwd()): Promise<Partial<CliCon
 
 async function parseRc(text: string, ext: string) {
   try {
-    if (ext === ".yaml" || ext === ".yml") {
-      const { load } = await import("js-yaml");
+    if (ext === '.yaml' || ext === '.yml') {
+      const { load } = await import('js-yaml');
       return load(text) as unknown;
     }
     // Try JSON first for no-extension or .json
@@ -89,7 +88,7 @@ async function parseRc(text: string, ext: string) {
     // Fallback: if no extension, try YAML
     if (!ext) {
       try {
-        const { load } = await import("js-yaml");
+        const { load } = await import('js-yaml');
         return load(text) as unknown;
       } catch {}
     }
@@ -110,4 +109,24 @@ export async function resolveConfig(profile?: string): Promise<ResolvedConfig> {
   const base = { domain: global.domain, model: global.model, apiKey: global.apiKey };
   const prof = profile ? global.profiles?.[profile] || {} : {};
   return { ...base, ...prof, ...project };
+}
+
+// Danger helpers for debugging/testing
+export async function resetConfig(): Promise<boolean> {
+  try {
+    await fs.unlink(paths.CONFIG_FILE);
+    return true;
+  } catch (e: any) {
+    if (e?.code === 'ENOENT') return false;
+    throw e;
+  }
+}
+
+export async function overrideConfig(newConfig: CliConfig): Promise<void> {
+  await ensureConfigDir();
+  const data = JSON.stringify(newConfig, null, 2);
+  await fs.writeFile(paths.CONFIG_FILE, data, { mode: 0o600 });
+  try {
+    await fs.chmod(paths.CONFIG_FILE, 0o600);
+  } catch {}
 }

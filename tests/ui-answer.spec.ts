@@ -14,4 +14,3 @@ describe('answer render blocks', () => {
     expect(s).toContain('openrouter.ai');
   });
 });
-

@@ -11,7 +11,11 @@ type Cache = { data: ModelMeta[]; expiresAt: number } | undefined;
 let cache: Cache;
 let inflight: Promise<ModelMeta[]> | null = null;
 
-export async function fetchModelsCached(opts: { domain: string; apiKey?: string; ttlMs?: number }): Promise<ModelMeta[]> {
+export async function fetchModelsCached(opts: {
+  domain: string;
+  apiKey?: string;
+  ttlMs?: number;
+}): Promise<ModelMeta[]> {
   const ttl = Math.max(1000, opts.ttlMs ?? 60_000);
   const now = Date.now();
   if (cache && cache.expiresAt > now) return cache.data;
@@ -30,17 +34,25 @@ export async function fetchModelsCached(opts: { domain: string; apiKey?: string;
 }
 
 export function fuzzyIds(input: string, list: ModelMeta[], limit = 25): string[] {
-  if (!input) return list.slice(0, limit).map(m => m.id);
+  if (!input) return list.slice(0, limit).map((m) => m.id);
   const fuse = new Fuse(list, {
     keys: ['id', 'name'],
     threshold: 0.35,
     ignoreLocation: true,
     includeScore: true,
   });
-  return fuse.search(input).slice(0, limit).map(r => r.item.id);
+  return fuse
+    .search(input)
+    .slice(0, limit)
+    .map((r) => r.item.id);
 }
 
-export function debouncedSuggestFactory(args: { domain: string; apiKey?: string; debounceMs?: number; spinnerLabel?: string }) {
+export function debouncedSuggestFactory(args: {
+  domain: string;
+  apiKey?: string;
+  debounceMs?: number;
+  spinnerLabel?: string;
+}) {
   const debounceMs = Math.max(0, args.debounceMs ?? 200);
   let timer: ReturnType<typeof setTimeout> | null = null;
   let pendingResolve: ((ids: string[]) => void) | null = null;
@@ -72,7 +84,10 @@ export function debouncedSuggestFactory(args: { domain: string; apiKey?: string;
 
     if ((input?.length ?? 0) >= 2 && process.stdout.isTTY) {
       if (!spinner) {
-        spinner = ora({ text: args.spinnerLabel || 'Searching models…', isEnabled: isColorSupported() });
+        spinner = ora({
+          text: args.spinnerLabel || 'Searching models…',
+          isEnabled: isColorSupported(),
+        });
         spinner.start();
       } else if (!spinner.isSpinning) {
         spinner.start();

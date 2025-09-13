@@ -6,18 +6,20 @@ This guide explains how configuration works in the CLI, how to set API keys secu
 
 Configuration comes from multiple sources. At runtime, values are resolved using this precedence (highest → lowest):
 
-1) CLI flags (e.g., `--profile`, `-m/--model`, `--domain`)
-2) Environment variables (API key: `OPENROUTER_API_KEY` or `OPENAI_API_KEY`)
-3) Project `.openrouterrc` (JSON or YAML in your project root)
-4) Global profile (`profiles.<name>` in `~/.config/openrouter-cli/config.json`)
-5) Global base config (`~/.config/openrouter-cli/config.json`)
-6) Built‑in defaults
+1. CLI flags (e.g., `--profile`, `-m/--model`, `--domain`)
+2. Environment variables (API key: `OPENROUTER_API_KEY` or `OPENAI_API_KEY`)
+3. Project `.openrouterrc` (JSON or YAML in your project root)
+4. Global profile (`profiles.<name>` in `~/.config/openrouter-cli/config.json`)
+5. Global base config (`~/.config/openrouter-cli/config.json`)
+6. Built‑in defaults
 
 Defaults:
+
 - Domain: `https://openrouter.ai/api/v1`
 - Model: `meta-llama/llama-3.1-8b-instruct`
 
 Interactive onboarding:
+
 - Run `openrouter init` to select a provider preset, set domain/model, and (optionally) persist an API key. Commands like `ask`, `test`, and `repl` auto‑prompt on missing keys in TTY unless `--no-init` is provided.
 
 ## Global Config
@@ -25,6 +27,7 @@ Interactive onboarding:
 - Path: `~/.config/openrouter-cli/config.json`
 - Stores base values and optional `profiles` object.
 - Example:
+
 ```json
 {
   "domain": "https://openrouter.ai/api/v1",
@@ -37,6 +40,7 @@ Interactive onboarding:
   }
 }
 ```
+
 - Permissions: written with chmod 600 where possible. Keys are redacted when printed.
 
 ### Managing Global Config via CLI
@@ -56,13 +60,16 @@ Interactive onboarding:
 Place a `.openrouterrc` in your project root to set project‑specific defaults. This file should not contain secrets.
 
 - JSON example (`./.openrouterrc` or `./.openrouterrc.json`):
+
 ```json
 {
   "domain": "http://localhost:11434/v1",
   "model": "gemma2:9b-instruct"
 }
 ```
+
 - YAML example (`./.openrouterrc.yaml` or `.yml`):
+
 ```yaml
 domain: http://localhost:11434/v1
 model: gemma2:9b-instruct
@@ -78,6 +85,7 @@ Use an environment variable for your API key. This is the safest approach and av
 - Also supported: `OPENAI_API_KEY`
 
 Examples:
+
 - bash/zsh:
   - `export OPENROUTER_API_KEY=sk-...` (place in `~/.bashrc` or `~/.zshrc` to persist)
 - fish:
@@ -88,6 +96,7 @@ Examples:
 CI/CD: store the key as a secret and inject it into the job environment.
 
 Auto‑init behavior
+
 - In interactive terminals, `openrouter ask|test|repl` will trigger `openrouter init` if no API key is available. Pass `--no-init` to skip.
 
 ## CLI Flags (Per‑Command)
@@ -96,12 +105,13 @@ Auto‑init behavior
   - `openrouter test --profile dev`
   - `openrouter ask --profile dev "Hello world"`
   - `openrouter repl --profile dev`
-  
+
 Note: To change the default domain or model, re‑run `openrouter init`. Per‑invocation model overrides have been removed to keep usage simple.
 
 ## Putting It Together: Precedence
 
 Example resolution for `openrouter ask --profile dev "Hi"` in a project with `.openrouterrc`:
+
 - CLI flags: profile=dev (wins over all below)
 - Env: API key from `OPENROUTER_API_KEY`, if set
 - Project `.openrouterrc`: overrides domain/model for this project

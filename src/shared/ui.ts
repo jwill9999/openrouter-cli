@@ -45,7 +45,7 @@ export function examplesBox(): string {
     ['test', 'openrouter test'],
   ];
   const header = `${palette.bold('Examples')}`;
-  const col1Width = Math.max(...rows.map(r => r[0].length), 'Command'.length) + 2;
+  const col1Width = Math.max(...rows.map((r) => r[0].length), 'Command'.length) + 2;
   const lines = [
     `${pad('Command', col1Width)}Example`,
     `${'-'.repeat(col1Width)}${'-'.repeat(32)}`,
@@ -95,7 +95,8 @@ export function styledPrompt(model: string): string {
 
 export function tipBox(): string {
   const lines = [
-    palette.dim("Type 'exit' to quit. Commands: ") + '/model <name>, /system <text>, /format <md|plain>, /stream <on|off>',
+    palette.dim("Type 'exit' to quit. Commands: ") +
+      '/model <name>, /system <text>, /format <md|plain>, /stream <on|off>, /stats, /billing',
     palette.dim("Use 'openrouter init' to change defaults."),
   ].join('\n');
   return boxen(lines, { padding: 1, borderStyle: 'single' });
@@ -103,6 +104,16 @@ export function tipBox(): string {
 
 export function showSpinner(label: string) {
   const enabled = isColorSupported();
-  const spinner = ora({ text: palette.dim(label), isEnabled: enabled, stream: process.stderr as any });
+  const spinner = ora({
+    text: palette.dim(label),
+    isEnabled: enabled,
+    stream: process.stderr as any,
+  });
   return spinner;
+}
+
+export function warnBox(text: string): string {
+  // Emphasize with red text and a clear border; remains readable without color
+  const body = palette.err(text);
+  return boxen(body, { padding: 1, borderStyle: 'round' });
 }

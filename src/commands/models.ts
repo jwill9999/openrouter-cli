@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import { banner, palette } from '../shared/ui.js';
 import { resolveConfig } from '../shared/config.js';
 import { getDefaultConfig } from '../shared/env.js';
-import { fetchModelsCached, fuzzyIds} from '../shared/models.js';
+import { fetchModelsCached, fuzzyIds } from '../shared/models.js';
 import Table from 'cli-table3';
 
 export function registerModelsCommand(program: Command) {
@@ -16,7 +16,8 @@ export function registerModelsCommand(program: Command) {
       const domain = eff.domain || getDefaultConfig().domain;
       const apiKey = eff.apiKey; // do not print
 
-      const interactive = process.stdin.isTTY && process.stdout.isTTY && !opts.nonInteractive && !query;
+      // Default: interactive picker in TTY, even when a query is provided (query seeds initial results)
+      const interactive = process.stdin.isTTY && process.stdout.isTTY && !opts.nonInteractive;
       if (interactive) {
         try {
           console.log(banner());
@@ -28,7 +29,8 @@ export function registerModelsCommand(program: Command) {
           try {
             const list = await fetchModelsCached({ domain, apiKey });
             modelsList = list;
-            initial = list.slice(0, 25).map(m => m.id);
+            const base = query ? fuzzyIds(query, list, 25) : list.slice(0, 25).map((m) => m.id);
+            initial = base.length ? base : initial;
           } catch {}
           const stableSuggest = async (input: string) => {
             const q = input || '';
@@ -36,7 +38,8 @@ export function registerModelsCommand(program: Command) {
             const withTyped = q && !ids.includes(q) ? [q, ...ids] : ids;
             return toChoices(withTyped.length ? withTyped : initial);
           };
-          const toChoices = (ids: string[]) => ids.map(id => ({ name: id, value: id, message: id }));
+          const toChoices = (ids: string[]) =>
+            ids.map((id) => ({ name: id, value: id, message: id }));
           const ans = await promptFn({
             type: 'autocomplete',
             name: 'model',
@@ -62,7 +65,7 @@ export function registerModelsCommand(program: Command) {
         const ids = fuzzyIds(query || '', list, 25);
         const table = new Table({ head: ['ID', 'Name'] });
         for (const id of ids) {
-          const meta = list.find(m => m.id === id);
+          const meta = list.find((m) => m.id === id);
           table.push([id, meta?.name || '']);
         }
         console.log(table.toString());
