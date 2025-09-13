@@ -1,9 +1,11 @@
-import readline from "node:readline";
-import { streamChat, askOnce } from "./shared/openrouter.js";
-import { renderText, OutputFormat } from "./shared/format.js";
-import { showSpinner } from "./shared/ui.js";
-import { logError } from "./shared/logger.js";
-import { styledPrompt, tipBox } from "./shared/ui.js";
+import readline from 'node:readline';
+import { streamChat, askOnce, getCredits } from './shared/openrouter.js';
+import { renderText, OutputFormat } from './shared/format.js';
+import { showSpinner } from './shared/ui.js';
+import { logError } from './shared/logger.js';
+import { styledPrompt, tipBox } from './shared/ui.js';
+// dynamic imports used when needed to avoid readline conflicts
+import { fetchModelsCached, fuzzyIds } from './shared/models.js';
 
 type ReplOptions = {
   apiKey: string;
@@ -14,108 +16,305 @@ type ReplOptions = {
 export async function startRepl(opts: ReplOptions) {
   let currentModel = opts.initialModel;
   let system: string | undefined;
-  let format: OutputFormat = "md"; // default rendered markdown for non-stream outputs
+  let format: OutputFormat = 'md'; // default rendered markdown for non-stream outputs
   let streaming = false;
-  const history: { role: "user" | "assistant"; content: string }[] = [];
+  const history: { role: 'user' | 'assistant'; content: string }[] = [];
+  let shouldExit = false;
 
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: true, prompt: '', historySize: 100, escapeCodeTimeout: 50 });
-  const prompt = () => rl.setPrompt(styledPrompt(currentModel));
-  prompt();
-  rl.prompt();
+  // Session tracking
+  let sessionTokens = 0;
+  let sessionCost = 0;
+  let sessionRequests = 0;
 
-  console.log(tipBox());
+  async function promptUser(): Promise<void> {
+    if (shouldExit) return;
 
-  // Keep REPL alive on Ctrl+C (SIGINT); show prompt again
-  rl.on('SIGINT', () => {
-    process.stdout.write("\n");
-    rl.prompt();
-  });
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+      terminal: true,
+      prompt: '',
+      historySize: 100,
+      escapeCodeTimeout: 50,
+      removeHistoryDuplicates: true,
+    });
 
-  rl.on("line", async (line) => {
-    const input = line.trim();
-    if (!input) {
-      rl.prompt();
-      return;
+    const prompt = () => rl.setPrompt(styledPrompt(currentModel));
+    prompt();
+
+    if (history.length === 0) {
+      console.log(tipBox());
     }
-    if (input === "exit") {
+
+    rl.on('line', async (line) => {
+      const input = line.trim();
+
+      if (!input) {
+        rl.prompt();
+        return;
+      }
+      if (input === 'exit') {
+        shouldExit = true;
+        rl.close();
+        return;
+      }
+
+      // Close the readline interface after getting input
       rl.close();
-      return;
-    }
-    if (input.startsWith("/model ")) {
-      currentModel = input.slice("/model ".length).trim();
-      prompt();
-      rl.prompt();
-      return;
-    }
-    if (input.startsWith("/system ")) {
-      system = input.slice("/system ".length).trim();
-      console.log("[system set]");
-      rl.prompt();
-      return;
-    }
-    if (input.startsWith("/format ")) {
-      const val = input.slice("/format ".length).trim();
-      if (val === "md" || val === "plain") {
-        format = val;
-        console.log(`[format: ${format}]`);
-      } else {
-        console.log("Usage: /format md|plain");
-      }
-      rl.prompt();
-      return;
-    }
-    if (input.startsWith("/stream ")) {
-      const val = input.slice("/stream ".length).trim();
-      if (val === "on") streaming = true;
-      else if (val === "off") streaming = false;
-      else console.log("Usage: /stream on|off");
-      console.log(`[stream: ${streaming ? "on" : "off"}]`);
-      rl.prompt();
-      return;
-    }
-
-    const userMsg = { role: "user" as const, content: input };
-    history.push(userMsg);
-    try {
-      if (streaming) {
-        const spinner = showSpinner('Thinking');
-        let stopped = false;
+      if (input === '/model') {
         try {
+          const spinner = showSpinner('Loading models…');
           spinner.start();
-          await streamChat({
-            domain: opts.domain,
-            apiKey: opts.apiKey,
-            model: currentModel,
-            system,
-            stream: true,
-            onFirstToken: () => { if (!stopped) { spinner.stop(); stopped = true; } },
-            onDone: () => { if (!stopped) { spinner.stop(); stopped = true; } },
-          }, [
-            ...history,
-          ]);
-          process.stdout.write("\n");
-        } finally {
-          if (!stopped) { spinner.stop(); }
-        }
-      } else {
-        const spinner = showSpinner('Thinking…');
-        try {
-          spinner.start();
-          const text = await askOnce({ domain: opts.domain, apiKey: opts.apiKey, model: currentModel, system, stream: false }, [
-            ...history,
-          ]);
-          const pretty = renderText(text, { format, streaming: false });
-          process.stdout.write(pretty + "\n");
-        } finally {
+          const list = await fetchModelsCached({ domain: opts.domain, apiKey: opts.apiKey });
           spinner.stop();
+
+          // Create a new readline interface for model selection
+          const modelRl = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout,
+            terminal: true,
+          });
+
+          const askModel = (q: string) =>
+            new Promise<string>((res) => modelRl.question(q, (ans) => res(ans.trim())));
+
+          const query = await askModel('Search models (>=2 chars, blank to cancel): ');
+          if (!query) {
+            modelRl.close();
+            await promptUser();
+            return;
+          }
+
+          const ids = fuzzyIds(query, list, 10);
+          if (!ids.length) {
+            console.log('No matches.');
+            modelRl.close();
+            await promptUser();
+            return;
+          }
+
+          console.log('Matches:');
+          ids.forEach((id, i) => {
+            const meta = list.find((m) => m.id === id);
+            const name = meta?.name ? ` — ${meta.name}` : '';
+            console.log(`${i + 1}. ${id}${name}`);
+          });
+
+          const sel = await askModel(`Pick 1-${ids.length} or type a model id: `);
+          let chosen = '';
+          const n = Number(sel);
+          if (sel && Number.isInteger(n) && n >= 1 && n <= ids.length) {
+            chosen = ids[n - 1];
+          } else if (sel) {
+            chosen = sel;
+          }
+
+          if (chosen) {
+            currentModel = chosen;
+            console.log(`[model: ${currentModel}]`);
+          }
+
+          modelRl.close();
+        } catch (e) {
+          await logError(e, 'repl-model-picker');
+          console.log("Tip: run 'openrouter models' in another terminal to browse models.");
+        }
+
+        // Ensure clean terminal state before restarting
+        process.stdout.write('\n');
+        await promptUser();
+        return;
+      }
+      if (input.startsWith('/model ')) {
+        currentModel = input.slice('/model '.length).trim();
+        console.log(`[model: ${currentModel}]`);
+        await promptUser();
+        return;
+      }
+      if (input.startsWith('/system ')) {
+        system = input.slice('/system '.length).trim();
+        console.log('[system set]');
+        await promptUser();
+        return;
+      }
+      if (input.startsWith('/format ')) {
+        const val = input.slice('/format '.length).trim();
+        if (val === 'md' || val === 'plain') {
+          format = val;
+          console.log(`[format: ${format}]`);
+        } else {
+          console.log('Usage: /format md|plain');
+        }
+        await promptUser();
+        return;
+      }
+      if (input.startsWith('/stream ')) {
+        const val = input.slice('/stream '.length).trim();
+        if (val === 'on') streaming = true;
+        else if (val === 'off') streaming = false;
+        else console.log('Usage: /stream on|off');
+        console.log(`[stream: ${streaming ? 'on' : 'off'}]`);
+        await promptUser();
+        return;
+      }
+      if (input === '/stats') {
+        console.log(`\nSession Statistics:`);
+        console.log(`Model: ${currentModel}`);
+        console.log(`Total tokens: ${sessionTokens}`);
+        console.log(`Total requests: ${sessionRequests}`);
+        if (sessionCost > 0) {
+          console.log(`Total cost: $${sessionCost.toFixed(6)}`);
+        } else {
+          console.log(`Total cost: Free`);
+        }
+        console.log(
+          `Average tokens per request: ${sessionRequests > 0 ? Math.round(sessionTokens / sessionRequests) : 0}`
+        );
+        await promptUser();
+        return;
+      }
+      if (input === '/billing') {
+        try {
+          const spinner = showSpinner('Fetching billing info…');
+          spinner.start();
+          const credits = await getCredits({ domain: opts.domain, apiKey: opts.apiKey });
+          spinner.stop();
+
+          console.log(`\nOpenRouter Account Credits:`);
+          if (credits.data) {
+            const data = credits.data;
+            console.log(`Total credits purchased: $${(data.total_credits || 0).toFixed(6)}`);
+            console.log(`Total usage: $${(data.total_usage || 0).toFixed(6)}`);
+            console.log(
+              `Current balance: $${((data.total_credits || 0) - (data.total_usage || 0)).toFixed(6)}`
+            );
+            if (data.credit_limit) {
+              console.log(`Credit limit: $${data.credit_limit.toFixed(6)}`);
+            }
+          } else {
+            console.log(`Credits info: ${JSON.stringify(credits, null, 2)}`);
+          }
+        } catch (err) {
+          console.error('Failed to fetch billing info:', err);
+        }
+        await promptUser();
+        return;
+      }
+
+      const userMsg = { role: 'user' as const, content: input };
+      history.push(userMsg);
+
+      // Process the message and then prompt
+      try {
+        if (streaming) {
+          const spinner = showSpinner('Thinking');
+          let stopped = false;
+          try {
+            spinner.start();
+            await streamChat(
+              {
+                domain: opts.domain,
+                apiKey: opts.apiKey,
+                model: currentModel,
+                system,
+                stream: true,
+                onFirstToken: () => {
+                  if (!stopped) {
+                    spinner.stop();
+                    stopped = true;
+                  }
+                },
+                onDone: () => {
+                  if (!stopped) {
+                    spinner.stop();
+                    stopped = true;
+                  }
+                },
+              },
+              [...history]
+            );
+            process.stdout.write('\n');
+          } finally {
+            if (!stopped) {
+              spinner.stop();
+            }
+          }
+        } else {
+          const spinner = showSpinner('Thinking…');
+          try {
+            spinner.start();
+            const result = await askOnce(
+              {
+                domain: opts.domain,
+                apiKey: opts.apiKey,
+                model: currentModel,
+                system,
+                stream: false,
+              },
+              [...history]
+            );
+            const pretty = renderText(result.text, { format, streaming: false });
+            process.stdout.write(pretty + '\n');
+
+            // Display usage information if available
+            if (result.usage) {
+              const usage = result.usage;
+              const tokens = usage.total_tokens || usage.completion_tokens + usage.prompt_tokens;
+              const cost = usage.total_cost || usage.cost || 0;
+
+              // Update session totals
+              sessionTokens += tokens;
+              sessionCost += cost;
+              sessionRequests += 1;
+
+              let usageInfo = `\nTokens: ${tokens}`;
+              if (usage.prompt_tokens && usage.completion_tokens) {
+                usageInfo += ` (prompt: ${usage.prompt_tokens}, completion: ${usage.completion_tokens})`;
+              }
+
+              if (cost > 0) {
+                usageInfo += ` | Cost: $${cost.toFixed(6)}`;
+              } else {
+                usageInfo += ` | Free`;
+              }
+
+              // Show session totals
+              usageInfo += `\nSession: ${sessionTokens} tokens`;
+              if (sessionCost > 0) {
+                usageInfo += `, $${sessionCost.toFixed(6)} total`;
+              } else {
+                usageInfo += `, free`;
+              }
+              usageInfo += ` (${sessionRequests} requests)`;
+
+              process.stdout.write(usageInfo + '\n');
+            }
+          } finally {
+            spinner.stop();
+          }
+        }
+      } catch (err) {
+        if ((await import('./shared/errors.js')).isPolicyError(err)) {
+          const { handlePolicyError } = await import('./shared/errors.js');
+          await handlePolicyError({
+            where: 'repl',
+            tty: !!process.stdout.isTTY,
+            interactivePrompt: false,
+          });
+        } else {
+          await logError(err, 'repl');
+          console.error('A technical issue occurred. Please try again.');
         }
       }
-    } catch (err) {
-      await logError(err, 'repl');
-      console.error('A technical issue occurred. Please try again.');
-    }
-    rl.prompt();
-  });
 
-  await new Promise<void>((resolve) => rl.on("close", () => resolve()));
+      // Continue with next prompt
+      await promptUser();
+    });
+
+    // Start the initial prompt
+    rl.prompt();
+    await new Promise<void>((resolve) => rl.once('close', resolve));
+  }
+
+  await promptUser();
 }

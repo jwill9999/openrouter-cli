@@ -13,4 +13,3 @@ describe('markdown rendering (ANSI)', () => {
     expect(out).toMatch(/\x1b\[2mcode\x1b\[22m/);
   });
 });
-

@@ -16,7 +16,7 @@ describe('askOnce error handling', () => {
       ok: false,
       status: 400,
       statusText: 'Bad Request',
-      json: async () => ({ error: 'test-error' })
+      json: async () => ({ error: 'test-error' }),
     })) as any;
 
     const opts: ChatOptions = {
@@ -25,8 +25,8 @@ describe('askOnce error handling', () => {
       model: 'm',
       stream: false,
     };
-    await expect(askOnce(opts, [{ role: 'user', content: 'hi' }]))
-      .rejects.toThrow(/HTTP 400 Bad Request: .*test-error.*/);
+    await expect(askOnce(opts, [{ role: 'user', content: 'hi' }])).rejects.toThrow(
+      /HTTP 400 Bad Request: .*test-error.*/
+    );
   });
 });
-

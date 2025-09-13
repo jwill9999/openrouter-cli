@@ -19,4 +19,3 @@ Explain the change and why it’s needed.
 - [ ] Linted locally (`npm run lint`) and tests pass (`npm test`).
 - [ ] If user‑facing, commit message uses `feat:` or `fix:` (or `BREAKING CHANGE` where appropriate).
 - [ ] Updated docs if needed.
-

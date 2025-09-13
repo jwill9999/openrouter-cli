@@ -31,7 +31,11 @@ afterEach(async () => {
 describe('project YAML rc precedence', () => {
   it('reads .openrouterrc.yaml and overrides model', async () => {
     await fs.mkdir(cfgModule.paths.CONFIG_DIR, { recursive: true });
-    await cfgModule.updateConfig({ domain: 'https://global.example/v1', model: 'global-model', apiKey: 'sk-global' });
+    await cfgModule.updateConfig({
+      domain: 'https://global.example/v1',
+      model: 'global-model',
+      apiKey: 'sk-global',
+    });
     await cfgModule.updateProfile('dev', { domain: 'https://dev.example/v1', model: 'dev-model' });
 
     const rcPath = path.join(process.cwd(), '.openrouterrc.yaml');
@@ -43,4 +47,3 @@ describe('project YAML rc precedence', () => {
     expect(eff.apiKey).toBe('sk-global');
   });
 });
-

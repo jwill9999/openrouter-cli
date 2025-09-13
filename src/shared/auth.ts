@@ -4,9 +4,13 @@ import { runInitWizard } from './init.js';
 
 export type EnsureApiKeyResult = { ok: true; apiKey: string } | { ok: false; message: string };
 
-const MISSING_KEY_MSG = "Missing API key. Set OPENROUTER_API_KEY / OPENAI_API_KEY or run 'openrouter init'.";
+const MISSING_KEY_MSG =
+  "Missing API key. Set OPENROUTER_API_KEY / OPENAI_API_KEY or run 'openrouter init'.";
 
-export async function ensureApiKey(profile?: string, allowInit?: boolean): Promise<EnsureApiKeyResult> {
+export async function ensureApiKey(
+  profile?: string,
+  allowInit?: boolean
+): Promise<EnsureApiKeyResult> {
   const eff = await resolveConfig(profile);
   let apiKey = getApiKey(await readConfig()) || eff.apiKey;
 
@@ -21,4 +25,3 @@ export async function ensureApiKey(profile?: string, allowInit?: boolean): Promi
   if (!apiKey) return { ok: false, message: MISSING_KEY_MSG };
   return { ok: true, apiKey };
 }
-

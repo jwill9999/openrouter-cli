@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import { main } from "./main.js";
-import { logError } from "./shared/logger.js";
+import { main } from './main.js';
+import { logError } from './shared/logger.js';
 
 // Entrypoint
 main().catch(async (err) => {

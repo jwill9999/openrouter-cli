@@ -63,6 +63,7 @@ src/index.ts ─▶ src/main.ts ─▶ commands
 - `safeJson(res)`: tries JSON, falls back to text.
 
 Notes:
+
 - Request-level timeouts and normalized error mapping are not yet implemented (planned in upcoming tasks).
 
 ## Rendering & UI
@@ -107,4 +108,3 @@ Notes:
 - Non-interactive flags for `init` (provider/domain/model/api-key/profile) as part of CI flows.
 - Documentation polish (README examples, REPL transcript, small screencast).
 - Optional CI packaging and coverage upload.
-

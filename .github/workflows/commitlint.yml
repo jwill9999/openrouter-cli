@@ -19,4 +19,3 @@ jobs:
       - name: Lint commit messages
         run: |
           npx commitlint --from=${{ github.event.pull_request.base.sha }} --to=${{ github.sha }} --verbose
-
