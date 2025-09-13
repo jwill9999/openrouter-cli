@@ -1,14 +1,13 @@
-name: Beta Prerelease
+name: Alpha/Beta Prerelease
 
 on:
   push:
     branches:
-      - 'story/**'
       - 'feature/**'
-      - 'release/**'
+      - 'beta/**'
 
 jobs:
-  beta:
+  prerelease:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
@@ -29,14 +28,36 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
         run: npm whoami || true
       - run: npm run build --if-present
-      - name: Bump prerelease version (beta) without tagging
+
+      - name: Determine release type
+        id: release-type
+        shell: bash
+        run: |
+          if [[ "${{ github.ref }}" == refs/heads/feature/* ]]; then
+            echo "type=alpha" >> $GITHUB_OUTPUT
+            echo "preid=alpha" >> $GITHUB_OUTPUT
+            echo "tag=alpha" >> $GITHUB_OUTPUT
+            echo "Release type: ALPHA (experimental features)"
+          elif [[ "${{ github.ref }}" == refs/heads/beta/* ]]; then
+            echo "type=beta" >> $GITHUB_OUTPUT
+            echo "preid=beta" >> $GITHUB_OUTPUT
+            echo "tag=beta" >> $GITHUB_OUTPUT
+            echo "Release type: BETA (testing phase)"
+          else
+            echo "type=unknown" >> $GITHUB_OUTPUT
+            echo "Unknown branch pattern, skipping release"
+            exit 1
+          fi
+
+      - name: Bump prerelease version
         shell: bash
         run: |
           CURRENT=$(node -p "require('./package.json').version")
           echo "Current version: $CURRENT"
-          npm version prerelease --preid=beta --no-git-tag-version
+          npm version prerelease --preid=${{ steps.release-type.outputs.preid }} --no-git-tag-version
           NEW=$(node -p "require('./package.json').version")
           echo "New version: $NEW"
+
       - name: Skip if version already exists
         id: exists
         shell: bash
@@ -49,9 +70,10 @@ jobs:
           else
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
-      - name: Publish to npm (beta tag)
+
+      - name: Publish to npm
         if: steps.exists.outputs.exists == 'false'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
           NPM_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
-        run: npm publish --tag beta --provenance --access public
+        run: npm publish --tag ${{ steps.release-type.outputs.tag }} --provenance --access public
