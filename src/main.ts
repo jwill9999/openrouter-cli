@@ -25,6 +25,9 @@ export function buildProgram() {
   // Attach styled help (banner + examples)
   attachStyledHelp(program);
 
+  // Attach styled help (banner + examples)
+  attachStyledHelp(program);
+
   program
     .command('config')
     .description('Show configuration or update API key')

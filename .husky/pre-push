@@ -4,4 +4,4 @@ if [ -n "$CI" ] || [ "$HUSKY" = "0" ] || [ -n "$HUSKY_SKIP_HOOKS" ]; then
   exit 0
 fi
 
-npm test && npm run build
+npm run lint --fix && npm run format:check && npm test && npm run build

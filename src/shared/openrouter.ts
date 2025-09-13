@@ -154,6 +154,11 @@ export async function streamChat(opts: ChatOptions, messages: Message[]) {
       opts.onDone();
     } catch {}
   }
+  if (opts.onDone) {
+    try {
+      opts.onDone();
+    } catch {}
+  }
 }
 
 function normalizeMessages(opts: ChatOptions, messages: Message[]) {
