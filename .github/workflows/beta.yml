@@ -142,10 +142,9 @@ jobs:
             fi
           fi
 
-          echo "Setting version to: $NEW_VERSION"
-          npm version "$NEW_VERSION" --no-git-tag-version
+          # No need to call npm version again - it's already been set
           VERIFIED=$(node -p "require('./package.json').version")
-          echo "Verified version: $VERIFIED"
+          echo "Final version: $VERIFIED"
 
       - name: Commit version changes
         run: |
