@@ -6,12 +6,40 @@ on:
       - 'feature/**'
       - 'beta/**'
   pull_request:
-    types: [closed]
+    types: [opened, synchronize, reopened, closed]
     branches:
       - 'beta/**'
       - 'main'
 
 jobs:
+  # Pre-merge checks for pull requests
+  pre-merge-checks:
+    if: github.event_name == 'pull_request' && github.event.pull_request.merged == false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+      - run: npm install --no-audit --no-fund
+      - run: npm run build
+      - run: npm run lint
+      - run: npm run test
+      - name: Check commit message format
+        run: |
+          # Check if commit messages follow conventional commits
+          echo "Checking commit message format..."
+          if ! echo "${{ github.event.pull_request.title }}" | grep -E "^(feat|fix|chore|docs|refactor|test|style|perf|ci|build|revert)(\(.+\))?: .+"; then
+            echo "❌ PR title doesn't follow conventional commit format"
+            echo "Expected format: type(scope): description"
+            echo "Example: feat: add new feature"
+            exit 1
+          else
+            echo "✅ PR title follows conventional commit format"
+          fi
+
+  # Release workflow for merged PRs and direct pushes
   prerelease:
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
     runs-on: ubuntu-latest

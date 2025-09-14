@@ -7,7 +7,9 @@ on:
     branches: [main, master]
 
 jobs:
-  build:
+  # Pre-merge checks for pull requests to main
+  pre-merge-checks:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -22,3 +24,176 @@ jobs:
       - run: npm run build
       - run: npm run lint --if-present
       - run: npm run test:coverage
+      - name: Check commit message format
+        if: matrix.node-version == '20.x'
+        run: |
+          # Check if commit messages follow conventional commits
+          echo "Checking commit message format..."
+          if ! echo "${{ github.event.pull_request.title }}" | grep -E "^(feat|fix|chore|docs|refactor|test|style|perf|ci|build|revert)(\(.+\))?: .+"; then
+            echo "❌ PR title doesn't follow conventional commit format"
+            echo "Expected format: type(scope): description"
+            echo "Example: feat: add new feature"
+            exit 1
+          else
+            echo "✅ PR title follows conventional commit format"
+          fi
+
+  # Build and test for main branch pushes
+  build:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      - run: npm install --no-audit --no-fund
+      - run: npm run build
+      - run: npm run lint --if-present
+      - run: npm run test:coverage
+
+  # Release workflow for main branch
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: write
+      id-token: write
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
+          scope: '@letuscode'
+          always-auth: true
+      - run: npm install --no-audit --no-fund
+      - name: Verify npm auth
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
+        run: npm whoami || true
+      - run: npm run build --if-present
+
+      - name: Determine release type
+        id: release-type
+        shell: bash
+        run: |
+          echo "type=stable" >> $GITHUB_OUTPUT
+          echo "preid=" >> $GITHUB_OUTPUT
+          echo "tag=latest" >> $GITHUB_OUTPUT
+          echo "Release type: STABLE (production ready)"
+
+      - name: Bump version
+        shell: bash
+        run: |
+          CURRENT=$(node -p "require('./package.json').version")
+          echo "Current version: $CURRENT"
+
+          PKG=$(node -p "require('./package.json').name")
+          RELEASE_TYPE="stable"
+
+          # For stable releases, analyze commits to determine semantic version
+          echo "Analyzing commits to determine semantic version..."
+
+          # Get commits since last stable release
+          LAST_STABLE=$(npm view "$PKG" versions --json 2>/dev/null | jq -r ".[] | select(startswith(\"0.\") and (contains(\"-alpha.\") | not) and (contains(\"-beta.\") | not))" | tail -1) || echo ""
+
+          if [ -n "$LAST_STABLE" ] && [ "$LAST_STABLE" != "null" ]; then
+            echo "Last stable version: $LAST_STABLE"
+            # Get commits since last stable release
+            COMMITS=$(git log --oneline --grep="^feat\|^fix\|^BREAKING" --since="$(git log -1 --format=%ai $(git describe --tags --match="v$LAST_STABLE" 2>/dev/null || echo "HEAD~100") 2>/dev/null || echo "HEAD~100")" || echo "")
+          else
+            echo "No stable version found, analyzing recent commits..."
+            COMMITS=$(git log --oneline --grep="^feat\|^fix\|^BREAKING" -10 || echo "")
+          fi
+
+          # Analyze commit types to determine version bump
+          HAS_FEAT=$(echo "$COMMITS" | grep -c "^[a-f0-9]* feat" || echo "0")
+          HAS_FIX=$(echo "$COMMITS" | grep -c "^[a-f0-9]* fix" || echo "0")
+          HAS_BREAKING=$(echo "$COMMITS" | grep -c "BREAKING" || echo "0")
+
+          echo "Commit analysis: $HAS_FEAT features, $HAS_FIX fixes, $HAS_BREAKING breaking changes"
+
+          # Determine version bump type
+          if [ "$HAS_BREAKING" -gt 0 ]; then
+            echo "Breaking changes detected, bumping major version"
+            npm version major --no-git-tag-version
+          elif [ "$HAS_FEAT" -gt 0 ]; then
+            echo "Features detected, bumping minor version"
+            npm version minor --no-git-tag-version
+          elif [ "$HAS_FIX" -gt 0 ]; then
+            echo "Fixes detected, bumping patch version"
+            npm version patch --no-git-tag-version
+          else
+            echo "No conventional commits found, bumping patch version"
+            npm version patch --no-git-tag-version
+          fi
+
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "Determined semantic version: $NEW_VERSION"
+
+      - name: Commit version changes
+        run: |
+          # Configure git
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+          # Check if there are changes to commit
+          if git diff --quiet package.json; then
+            echo "No changes to package.json, skipping commit"
+          else
+            echo "Changes detected in package.json, committing..."
+            git add package.json
+            git commit -m "chore: bump version to $NEW_VERSION [skip ci]"
+            
+            # Push changes back to the repository
+            echo "Pushing changes to repository..."
+            git push origin HEAD:main
+          fi
+
+      - name: Skip if version already exists
+        id: exists
+        shell: bash
+        run: |
+          PKG=$(node -p "require('./package.json').name")
+          VER=$(node -p "require('./package.json').version")
+          if npm view "$PKG@$VER" version >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Version $PKG@$VER already exists on registry; skipping publish."
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Publish to npm
+        if: steps.exists.outputs.exists == 'false'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
+        run: npm publish --tag latest --provenance --access public
+
+      - name: Create GitHub Release
+        if: steps.exists.outputs.exists == 'false'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PKG=$(node -p "require('./package.json').name")
+          VER=$(node -p "require('./package.json').version")
+          TAG="v$VER"
+          TYPE="stable"
+          TYPE_UPPER="STABLE"
+
+          # Create GitHub release
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --notes "**${TYPE_UPPER} Release** - ${TYPE_UPPER} version $VER"
