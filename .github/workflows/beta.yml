@@ -55,28 +55,10 @@ jobs:
           CURRENT=$(node -p "require('./package.json').version")
           echo "Current version: $CURRENT"
 
-          # Get the latest version from NPM for this prerelease type
-          PKG=$(node -p "require('./package.json').name")
-          PREID="${{ steps.release-type.outputs.preid }}"
-
-          # Try to get the latest prerelease version from NPM
-          LATEST_PRERELEASE=$(npm view "$PKG" versions --json | jq -r ".[] | select(startswith(\"0.1.\") and contains(\"-$PREID.\"))" | tail -1) || echo ""
-
-          if [ -n "$LATEST_PRERELEASE" ]; then
-            echo "Latest prerelease version: $LATEST_PRERELEASE"
-            # Extract the prerelease number and increment it
-            PRERELEASE_NUM=$(echo "$LATEST_PRERELEASE" | sed "s/.*-$PREID\.//")
-            NEW_PRERELEASE_NUM=$((PRERELEASE_NUM + 1))
-            NEW_VERSION="0.1.1-$PREID.$NEW_PRERELEASE_NUM"
-          else
-            # No prerelease version exists, start with .0
-            NEW_VERSION="0.1.1-$PREID.0"
-          fi
-
-          echo "Setting version to: $NEW_VERSION"
-          npm version "$NEW_VERSION" --no-git-tag-version
-          VERIFIED=$(node -p "require('./package.json').version")
-          echo "Verified version: $VERIFIED"
+          # Simple prerelease bump from current version
+          npm version prerelease --preid=${{ steps.release-type.outputs.preid }} --no-git-tag-version
+          NEW=$(node -p "require('./package.json').version")
+          echo "New version: $NEW"
 
       - name: Skip if version already exists
         id: exists
