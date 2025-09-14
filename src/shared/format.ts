@@ -17,7 +17,20 @@ export function renderText(
 
 export function toAnsiMarkdown(mdText: string): string {
   try {
-    return cliMarkdown(mdText);
+    // Set FORCE_COLOR to ensure colors are output even in non-TTY environments
+    const originalForceColor = process.env.FORCE_COLOR;
+    process.env.FORCE_COLOR = '1';
+
+    const result = cliMarkdown(mdText);
+
+    // Restore original value
+    if (originalForceColor === undefined) {
+      delete process.env.FORCE_COLOR;
+    } else {
+      process.env.FORCE_COLOR = originalForceColor;
+    }
+
+    return result;
   } catch (error) {
     // Fallback to plain text if markdown parsing fails
     console.warn('Markdown parsing failed, falling back to plain text:', error);
