@@ -5,10 +5,15 @@ on:
     branches:
       - 'feature/**'
       - 'beta/**'
+  pull_request:
+    types: [closed]
+    branches:
+      - 'beta/**'
+      - 'main'
 
 jobs:
   prerelease:
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -33,19 +38,29 @@ jobs:
         id: release-type
         shell: bash
         run: |
-          if [[ "${{ github.ref }}" == refs/heads/feature/* ]]; then
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == refs/heads/feature/* ]]; then
             echo "type=alpha" >> $GITHUB_OUTPUT
             echo "preid=alpha" >> $GITHUB_OUTPUT
             echo "tag=alpha" >> $GITHUB_OUTPUT
             echo "Release type: ALPHA (experimental features)"
-          elif [[ "${{ github.ref }}" == refs/heads/beta/* ]]; then
+          elif [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == refs/heads/beta/* ]]; then
             echo "type=beta" >> $GITHUB_OUTPUT
             echo "preid=beta" >> $GITHUB_OUTPUT
             echo "tag=beta" >> $GITHUB_OUTPUT
-            echo "Release type: BETA (testing phase)"
+            echo "Release type: BETA (testing phase - direct push)"
+          elif [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "beta" ]]; then
+            echo "type=beta" >> $GITHUB_OUTPUT
+            echo "preid=beta" >> $GITHUB_OUTPUT
+            echo "tag=beta" >> $GITHUB_OUTPUT
+            echo "Release type: BETA (testing phase - PR merge)"
+          elif [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "main" ]]; then
+            echo "type=stable" >> $GITHUB_OUTPUT
+            echo "preid=" >> $GITHUB_OUTPUT
+            echo "tag=latest" >> $GITHUB_OUTPUT
+            echo "Release type: STABLE (production ready)"
           else
             echo "type=unknown" >> $GITHUB_OUTPUT
-            echo "Unknown branch pattern, skipping release"
+            echo "Unknown trigger pattern, skipping release"
             exit 1
           fi
 
