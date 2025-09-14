@@ -9,8 +9,22 @@ You can change your model any time. In a terminal, run `openrouter models` to br
 
 ## Install
 
+### Stable Release (Recommended)
+
 - Global: `npm i -g @letuscode/openrouter-cli`
 - One‑off: `npx @letuscode/openrouter-cli --help`
+
+### Beta Release (Testing)
+
+- Global: `npm i -g @letuscode/openrouter-cli@beta`
+- One‑off: `npx @letuscode/openrouter-cli@beta --help`
+
+### Alpha Release (Experimental)
+
+- Global: `npm i -g @letuscode/openrouter-cli@alpha`
+- One‑off: `npx @letuscode/openrouter-cli@alpha --help`
+
+> **Note**: This project is in MVP development. Alpha releases are experimental, beta releases are for testing, and stable releases are for general use. See [Release Strategy](docs/RELEASE_STRATEGY.md) for details.
 
 Tip: Running `openrouter` with no args starts the setup wizard and then opens the REPL (in a terminal).
 
@@ -97,3 +111,13 @@ Pick 1-10 or type a model id:
 ## License
 
 - MIT
+
+# Test alpha release
+
+# Testing GitHub release creation
+
+# Final test of alpha workflow
+
+# Testing improved version bumping
+
+# Testing version increment

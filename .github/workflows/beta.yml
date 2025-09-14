@@ -1,18 +1,22 @@
-name: Beta Prerelease
+name: Alpha/Beta Prerelease
 
 on:
   push:
     branches:
-      - 'story/**'
       - 'feature/**'
-      - 'release/**'
+      - 'beta/**'
+  pull_request:
+    types: [closed]
+    branches:
+      - 'beta/**'
+      - 'main'
 
 jobs:
-  beta:
-    if: github.event_name == 'push'
+  prerelease:
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       id-token: write
     steps:
       - uses: actions/checkout@v4
@@ -29,14 +33,73 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
         run: npm whoami || true
       - run: npm run build --if-present
-      - name: Bump prerelease version (beta) without tagging
+
+      - name: Determine release type
+        id: release-type
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == refs/heads/feature/* ]]; then
+            echo "type=alpha" >> $GITHUB_OUTPUT
+            echo "preid=alpha" >> $GITHUB_OUTPUT
+            echo "tag=alpha" >> $GITHUB_OUTPUT
+            echo "Release type: ALPHA (experimental features)"
+          elif [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == refs/heads/beta/* ]]; then
+            echo "type=beta" >> $GITHUB_OUTPUT
+            echo "preid=beta" >> $GITHUB_OUTPUT
+            echo "tag=beta" >> $GITHUB_OUTPUT
+            echo "Release type: BETA (testing phase - direct push)"
+          elif [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "beta" ]]; then
+            echo "type=beta" >> $GITHUB_OUTPUT
+            echo "preid=beta" >> $GITHUB_OUTPUT
+            echo "tag=beta" >> $GITHUB_OUTPUT
+            echo "Release type: BETA (testing phase - PR merge)"
+          elif [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "main" ]]; then
+            echo "type=stable" >> $GITHUB_OUTPUT
+            echo "preid=" >> $GITHUB_OUTPUT
+            echo "tag=latest" >> $GITHUB_OUTPUT
+            echo "Release type: STABLE (production ready)"
+          else
+            echo "type=unknown" >> $GITHUB_OUTPUT
+            echo "Unknown trigger pattern, skipping release"
+            exit 1
+          fi
+
+      - name: Bump prerelease version
         shell: bash
         run: |
           CURRENT=$(node -p "require('./package.json').version")
           echo "Current version: $CURRENT"
-          npm version prerelease --preid=beta --no-git-tag-version
-          NEW=$(node -p "require('./package.json').version")
-          echo "New version: $NEW"
+
+          # Get the latest alpha version from NPM
+          PKG=$(node -p "require('./package.json').name")
+          PREID="${{ steps.release-type.outputs.preid }}"
+
+          # Get the latest alpha version (only 0.x.x versions)
+          LATEST_ALPHA=$(npm view "$PKG" versions --json | jq -r ".[] | select(startswith(\"0.\") and contains(\"-$PREID.\"))" | tail -1) || echo ""
+
+          if [ -n "$LATEST_ALPHA" ]; then
+            echo "Latest alpha version: $LATEST_ALPHA"
+            # Extract the prerelease number and increment it
+            PRERELEASE_NUM=$(echo "$LATEST_ALPHA" | sed "s/.*-$PREID\.//")
+            NEW_PRERELEASE_NUM=$((PRERELEASE_NUM + 1))
+            # Extract base version (e.g., 0.1.1 from 0.1.1-alpha.1)
+            BASE_VERSION=$(echo "$LATEST_ALPHA" | sed "s/-$PREID\..*//")
+            NEW_VERSION="$BASE_VERSION-$PREID.$NEW_PRERELEASE_NUM"
+          else
+            # No alpha version exists, create first one
+            npm version patch --no-git-tag-version
+            PATCH_VERSION=$(node -p "require('./package.json').version")
+            npm version prerelease --preid=$PREID --no-git-tag-version
+            NEW=$(node -p "require('./package.json').version")
+            echo "Created first alpha version: $NEW"
+            exit 0
+          fi
+
+          echo "Setting version to: $NEW_VERSION"
+          npm version "$NEW_VERSION" --no-git-tag-version
+          VERIFIED=$(node -p "require('./package.json').version")
+          echo "Verified version: $VERIFIED"
+
       - name: Skip if version already exists
         id: exists
         shell: bash
@@ -49,9 +112,27 @@ jobs:
           else
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
-      - name: Publish to npm (beta tag)
+
+      - name: Publish to npm
         if: steps.exists.outputs.exists == 'false'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
           NPM_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
-        run: npm publish --tag beta --provenance --access public
+        run: npm publish --tag ${{ steps.release-type.outputs.tag }} --provenance --access public
+
+      - name: Create GitHub Release
+        if: steps.exists.outputs.exists == 'false'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PKG=$(node -p "require('./package.json').name")
+          VER=$(node -p "require('./package.json').version")
+          TAG="v$VER"
+          TYPE="${{ steps.release-type.outputs.type }}"
+          TYPE_UPPER=$(echo "$TYPE" | tr '[:lower:]' '[:upper:]')
+
+          # Create GitHub release
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --notes "**${TYPE_UPPER} Release** - ${TYPE_UPPER} version $VER" \
+            --prerelease
