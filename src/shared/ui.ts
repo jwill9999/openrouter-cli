@@ -112,6 +112,16 @@ export function showSpinner(label: string) {
   return spinner;
 }
 
+export function showAnswerSpinner() {
+  const enabled = isColorSupported();
+  const spinner = ora({
+    text: palette.dim('Answer'),
+    isEnabled: enabled,
+    stream: process.stderr as any,
+  });
+  return spinner;
+}
+
 export function warnBox(text: string): string {
   // Emphasize with red text and a clear border; remains readable without color
   const body = palette.err(text);

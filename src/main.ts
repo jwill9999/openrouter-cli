@@ -185,8 +185,16 @@ export function buildProgram() {
               ...chatOptions,
               onFirstToken: () => {
                 if (!stopped) {
-                  spinner.stop();
-                  stopped = true;
+                  // Change spinner text to "Answer" before clearing
+                  spinner.text = 'Answer';
+                  // Give a brief moment to show the "Answer" text
+                  setTimeout(() => {
+                    spinner.clear();
+                    spinner.stop();
+                    // Add blank line for separation
+                    process.stdout.write('\n');
+                    stopped = true;
+                  }, 200);
                 }
               },
               onDone: () => {
