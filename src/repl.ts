@@ -220,8 +220,16 @@ export async function startRepl(opts: ReplOptions) {
                 stream: true,
                 onFirstToken: () => {
                   if (!stopped) {
-                    spinner.stop();
-                    stopped = true;
+                    // Change spinner text to "Answer" before clearing
+                    spinner.text = 'Answer';
+                    // Give a brief moment to show the "Answer" text
+                    setTimeout(() => {
+                      spinner.clear();
+                      spinner.stop();
+                      // Add blank line for separation
+                      process.stdout.write('\n');
+                      stopped = true;
+                    }, 200);
                   }
                 },
                 onDone: () => {
@@ -234,6 +242,12 @@ export async function startRepl(opts: ReplOptions) {
               [...history]
             );
             process.stdout.write('\n');
+
+            // Add the assistant's response to history
+            // Note: We can't easily capture the full response text from streaming
+            // so we'll add a placeholder that gets updated after the response
+            const assistantMsg = { role: 'assistant' as const, content: '[STREAMING_RESPONSE]' };
+            history.push(assistantMsg);
           } finally {
             if (!stopped) {
               spinner.stop();
@@ -255,6 +269,10 @@ export async function startRepl(opts: ReplOptions) {
             );
             const pretty = renderText(result.text, { format, streaming: false });
             process.stdout.write(pretty + '\n');
+
+            // Add the assistant's response to history
+            const assistantMsg = { role: 'assistant' as const, content: result.text };
+            history.push(assistantMsg);
 
             // Display usage information if available
             if (result.usage) {
