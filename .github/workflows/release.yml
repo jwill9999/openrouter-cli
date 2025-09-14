@@ -2,10 +2,8 @@ name: Release (semantic-release) - DISABLED
 
 # DISABLED: Using custom alpha/beta workflow instead
 # This will be re-enabled when we're ready for stable releases
-# on:
-#   push:
-#     branches:
-#       - main
+on:
+  workflow_dispatch: # Manual trigger only, no automatic triggers
 
 permissions:
   contents: write
