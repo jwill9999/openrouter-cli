@@ -1,13 +1,9 @@
 {
   "branches": [
-    {
-      "name": "main",
-      "range": "0.x"
-    },
+    "main",
     {
       "name": "beta",
-      "prerelease": true,
-      "range": "0.x"
+      "prerelease": true
     }
   ],
   "plugins": [
