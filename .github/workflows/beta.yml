@@ -64,35 +64,50 @@ jobs:
             exit 1
           fi
 
-      - name: Bump prerelease version
+      - name: Bump version
         shell: bash
         run: |
           CURRENT=$(node -p "require('./package.json').version")
           echo "Current version: $CURRENT"
 
-          # Get the latest alpha version from NPM
           PKG=$(node -p "require('./package.json').name")
           PREID="${{ steps.release-type.outputs.preid }}"
+          RELEASE_TYPE="${{ steps.release-type.outputs.type }}"
 
-          # Get the latest alpha version (only 0.x.x versions)
-          LATEST_ALPHA=$(npm view "$PKG" versions --json | jq -r ".[] | select(startswith(\"0.\") and contains(\"-$PREID.\"))" | tail -1) || echo ""
-
-          if [ -n "$LATEST_ALPHA" ]; then
-            echo "Latest alpha version: $LATEST_ALPHA"
-            # Extract the prerelease number and increment it
-            PRERELEASE_NUM=$(echo "$LATEST_ALPHA" | sed "s/.*-$PREID\.//")
-            NEW_PRERELEASE_NUM=$((PRERELEASE_NUM + 1))
-            # Extract base version (e.g., 0.1.1 from 0.1.1-alpha.1)
-            BASE_VERSION=$(echo "$LATEST_ALPHA" | sed "s/-$PREID\..*//")
-            NEW_VERSION="$BASE_VERSION-$PREID.$NEW_PRERELEASE_NUM"
+          if [[ "$RELEASE_TYPE" == "stable" ]]; then
+            # For stable releases, get the latest beta version and create clean version
+            LATEST_BETA=$(npm view "$PKG" versions --json | jq -r ".[] | select(startswith(\"0.\") and contains(\"-beta.\"))" | tail -1) || echo ""
+            if [ -n "$LATEST_BETA" ]; then
+              echo "Latest beta version: $LATEST_BETA"
+              # Extract base version (e.g., 0.1.2 from 0.1.2-beta.2)
+              BASE_VERSION=$(echo "$LATEST_BETA" | sed "s/-beta\..*//")
+              NEW_VERSION="$BASE_VERSION"
+            else
+              # No beta version exists, bump from current
+              npm version patch --no-git-tag-version
+              NEW_VERSION=$(node -p "require('./package.json').version")
+            fi
           else
-            # No alpha version exists, create first one
-            npm version patch --no-git-tag-version
-            PATCH_VERSION=$(node -p "require('./package.json').version")
-            npm version prerelease --preid=$PREID --no-git-tag-version
-            NEW=$(node -p "require('./package.json').version")
-            echo "Created first alpha version: $NEW"
-            exit 0
+            # For alpha/beta releases, use prerelease logic
+            LATEST_PRERELEASE=$(npm view "$PKG" versions --json | jq -r ".[] | select(startswith(\"0.\") and contains(\"-$PREID.\"))" | tail -1) || echo ""
+            
+            if [ -n "$LATEST_PRERELEASE" ]; then
+              echo "Latest prerelease version: $LATEST_PRERELEASE"
+              # Extract the prerelease number and increment it
+              PRERELEASE_NUM=$(echo "$LATEST_PRERELEASE" | sed "s/.*-$PREID\.//")
+              NEW_PRERELEASE_NUM=$((PRERELEASE_NUM + 1))
+              # Extract base version (e.g., 0.1.1 from 0.1.1-alpha.1)
+              BASE_VERSION=$(echo "$LATEST_PRERELEASE" | sed "s/-$PREID\..*//")
+              NEW_VERSION="$BASE_VERSION-$PREID.$NEW_PRERELEASE_NUM"
+            else
+              # No prerelease version exists, create first one
+              npm version patch --no-git-tag-version
+              PATCH_VERSION=$(node -p "require('./package.json').version")
+              npm version prerelease --preid=$PREID --no-git-tag-version
+              NEW_VERSION=$(node -p "require('./package.json').version")
+              echo "Created first prerelease version: $NEW_VERSION"
+              exit 0
+            fi
           fi
 
           echo "Setting version to: $NEW_VERSION"
