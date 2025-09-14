@@ -7,13 +7,13 @@ This document outlines our automated release strategy for the OpenRouter CLI pro
 ### Feature Branches (`feature/*`)
 
 - **Purpose**: Experimental features and new functionality
-- **Release Type**: Alpha releases
-- **NPM Tag**: `alpha`
-- **Version Pattern**: `0.1.3-alpha.0`, `0.1.3-alpha.1`, etc. (next patch version + alpha)
+- **Release Type**: Beta releases
+- **NPM Tag**: `beta`
+- **Version Pattern**: `0.1.3-beta.0`, `0.1.3-beta.1`, etc. (next patch version + beta)
 - **When to use**: When developing new features that may have breaking changes
 - **Automation**: Automatic version bumping and publishing on push
 
-### Beta Branches (`beta/*`)
+### Beta Branch (`beta`)
 
 - **Purpose**: Feature-complete functionality ready for testing
 - **Release Type**: Beta releases
@@ -34,17 +34,17 @@ This document outlines our automated release strategy for the OpenRouter CLI pro
 ## Development Workflow
 
 1. **Create feature branch**: `feature/your-feature-name`
-2. **Develop feature**: Push commits → Automatic alpha releases (`0.1.3-alpha.0`, `0.1.3-alpha.1`)
-3. **Merge to beta**: `beta/your-feature-name`
+2. **Develop feature**: Push commits → Automatic beta releases (`0.1.3-beta.0`, `0.1.3-beta.1`)
+3. **Merge to beta**: `beta` branch
 4. **Test thoroughly**: Push commits → Automatic beta releases (`0.1.4-beta.0`, `0.1.4-beta.1`)
 5. **Merge to main**: When ready → Automatic stable release (semantic versioning: `0.2.0`, `1.0.0`, etc.)
 
 ## Automated Version Management
 
-### Alpha/Beta Versioning
+### Beta Versioning
 
 - **Always bumps patch version first**, then adds prerelease identifier
-- **Example**: Main at `0.1.2` → Feature branch → `0.1.3-alpha.0`
+- **Example**: Main at `0.1.2` → Feature branch → `0.1.3-beta.0`
 - **Incremental**: Subsequent pushes increment the prerelease number
 - **Automated**: No manual version management needed
 
@@ -65,19 +65,12 @@ This document outlines our automated release strategy for the OpenRouter CLI pro
 
 ## Quality Gates
 
-### Alpha Releases
+### Beta Releases
 
 - ✅ Feature implemented
 - ⚠️ May have breaking changes
 - ⚠️ May have bugs
-- 🎯 Target: Early adopters and internal testing
-
-### Beta Releases
-
-- ✅ Feature complete
-- ✅ Basic testing done
-- ⚠️ May have minor bugs
-- 🎯 Target: Broader testing community
+- 🎯 Target: Testing and early adopters
 
 ### Stable Releases
 
@@ -102,25 +95,22 @@ npm install @letuscode/openrouter-cli
 # Install latest beta release
 npm install @letuscode/openrouter-cli@beta
 
-# Install latest alpha release
-npm install @letuscode/openrouter-cli@alpha
-
 # Install specific version
 npm install @letuscode/openrouter-cli@0.1.0-beta.1
 ```
 
 ## GitHub Releases
 
-- **Alpha/Beta**: Created automatically on feature/beta branches
+- **Beta**: Created automatically on feature/beta branches
 - **Stable**: Created automatically on main branch
-- **Tags**: Follow semantic versioning (v0.1.0, v0.1.0-alpha.1, etc.)
+- **Tags**: Follow semantic versioning (v0.1.0, v0.1.0-beta.1, etc.)
 
 ## Automated Workflow Details
 
 ### GitHub Actions Workflow
 
 - **File**: `.github/workflows/beta.yml`
-- **Triggers**: Push to `feature/*`, `beta/*`, or merge to `main`
+- **Triggers**: Push to `feature/*`, `beta`, or merge to `main`
 - **Permissions**: Full repository access for automated commits
 - **Features**:
   - Automatic version bumping
@@ -131,8 +121,8 @@ npm install @letuscode/openrouter-cli@0.1.0-beta.1
 ### Version Bumping Logic
 
 ```bash
-# Alpha/Beta releases
-Main: 0.1.2 → Feature branch → 0.1.3-alpha.0
+# Beta releases
+Main: 0.1.2 → Feature branch → 0.1.3-beta.0
 Main: 0.1.2 → Beta branch → 0.1.3-beta.0
 
 # Main releases (semantic versioning)

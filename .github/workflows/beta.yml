@@ -1,14 +1,14 @@
-name: Alpha/Beta Prerelease
+name: Beta Prerelease
 
 on:
   push:
     branches:
       - 'feature/**'
-      - 'beta/**'
+      - 'beta'
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches:
-      - 'beta/**'
+      - 'beta'
       - 'main'
 
 jobs:
@@ -72,11 +72,11 @@ jobs:
         shell: bash
         run: |
           if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == refs/heads/feature/* ]]; then
-            echo "type=alpha" >> $GITHUB_OUTPUT
-            echo "preid=alpha" >> $GITHUB_OUTPUT
-            echo "tag=alpha" >> $GITHUB_OUTPUT
-            echo "Release type: ALPHA (experimental features)"
-          elif [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == refs/heads/beta/* ]]; then
+            echo "type=beta" >> $GITHUB_OUTPUT
+            echo "preid=beta" >> $GITHUB_OUTPUT
+            echo "tag=beta" >> $GITHUB_OUTPUT
+            echo "Release type: BETA (experimental features)"
+          elif [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == refs/heads/beta ]]; then
             echo "type=beta" >> $GITHUB_OUTPUT
             echo "preid=beta" >> $GITHUB_OUTPUT
             echo "tag=beta" >> $GITHUB_OUTPUT
@@ -148,7 +148,7 @@ jobs:
             NEW_VERSION=$(node -p "require('./package.json').version")
             echo "Determined semantic version: $NEW_VERSION"
           else
-            # For alpha/beta releases, bump patch first, then add prerelease
+            # For beta releases, bump patch first, then add prerelease
             echo "Creating $PREID release from current version: $CURRENT"
             
             # Check if current version already has this prerelease type
@@ -156,7 +156,7 @@ jobs:
               # Current version is already a prerelease of this type, increment it
               PRERELEASE_NUM=$(echo "$CURRENT" | sed "s/.*-$PREID\.//")
               NEW_PRERELEASE_NUM=$((PRERELEASE_NUM + 1))
-              # Extract base version (e.g., 0.1.1 from 0.1.1-alpha.1)
+              # Extract base version (e.g., 0.1.1 from 0.1.1-beta.1)
               BASE_VERSION=$(echo "$CURRENT" | sed "s/-$PREID\..*//")
               NEW_VERSION="$BASE_VERSION-$PREID.$NEW_PRERELEASE_NUM"
             else
@@ -231,7 +231,7 @@ jobs:
               --title "$TAG" \
               --notes "**${TYPE_UPPER} Release** - ${TYPE_UPPER} version $VER"
           else
-            # Alpha/Beta release - is prerelease
+            # Beta release - is prerelease
             gh release create "$TAG" \
               --title "$TAG" \
               --notes "**${TYPE_UPPER} Release** - ${TYPE_UPPER} version $VER" \
