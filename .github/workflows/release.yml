@@ -1,9 +1,11 @@
-name: Release (semantic-release)
+name: Release (semantic-release) - DISABLED
 
-on:
-  push:
-    branches:
-      - main
+# DISABLED: Using custom alpha/beta workflow instead
+# This will be re-enabled when we're ready for stable releases
+# on:
+#   push:
+#     branches:
+#       - main
 
 permissions:
   contents: write
