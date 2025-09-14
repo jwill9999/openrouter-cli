@@ -18,8 +18,13 @@ jobs:
     permissions:
       contents: write
       id-token: write
+      pull-requests: write
+      issues: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 20.x
@@ -75,38 +80,65 @@ jobs:
           RELEASE_TYPE="${{ steps.release-type.outputs.type }}"
 
           if [[ "$RELEASE_TYPE" == "stable" ]]; then
-            # For stable releases, get the latest beta version and create clean version
-            LATEST_BETA=$(npm view "$PKG" versions --json | jq -r ".[] | select(startswith(\"0.\") and contains(\"-beta.\"))" | tail -1) || echo ""
-            if [ -n "$LATEST_BETA" ]; then
-              echo "Latest beta version: $LATEST_BETA"
-              # Extract base version (e.g., 0.1.2 from 0.1.2-beta.2)
-              BASE_VERSION=$(echo "$LATEST_BETA" | sed "s/-beta\..*//")
-              NEW_VERSION="$BASE_VERSION"
-            else
-              # No beta version exists, bump from current
-              npm version patch --no-git-tag-version
-              NEW_VERSION=$(node -p "require('./package.json').version")
-            fi
-          else
-            # For alpha/beta releases, use prerelease logic
-            LATEST_PRERELEASE=$(npm view "$PKG" versions --json | jq -r ".[] | select(startswith(\"0.\") and contains(\"-$PREID.\"))" | tail -1) || echo ""
+            # For stable releases, analyze commits to determine semantic version
+            echo "Analyzing commits to determine semantic version..."
             
-            if [ -n "$LATEST_PRERELEASE" ]; then
-              echo "Latest prerelease version: $LATEST_PRERELEASE"
-              # Extract the prerelease number and increment it
-              PRERELEASE_NUM=$(echo "$LATEST_PRERELEASE" | sed "s/.*-$PREID\.//")
+            # Get commits since last stable release
+            LAST_STABLE=$(npm view "$PKG" versions --json 2>/dev/null | jq -r ".[] | select(startswith(\"0.\") and (contains(\"-alpha.\") | not) and (contains(\"-beta.\") | not))" | tail -1) || echo ""
+            
+            if [ -n "$LAST_STABLE" ] && [ "$LAST_STABLE" != "null" ]; then
+              echo "Last stable version: $LAST_STABLE"
+              # Get commits since last stable release
+              COMMITS=$(git log --oneline --grep="^feat\|^fix\|^BREAKING" --since="$(git log -1 --format=%ai $(git describe --tags --match="v$LAST_STABLE" 2>/dev/null || echo "HEAD~100") 2>/dev/null || echo "HEAD~100")" || echo "")
+            else
+              echo "No stable version found, analyzing recent commits..."
+              COMMITS=$(git log --oneline --grep="^feat\|^fix\|^BREAKING" -10 || echo "")
+            fi
+            
+            # Analyze commit types to determine version bump
+            HAS_FEAT=$(echo "$COMMITS" | grep -c "^[a-f0-9]* feat" || echo "0")
+            HAS_FIX=$(echo "$COMMITS" | grep -c "^[a-f0-9]* fix" || echo "0")
+            HAS_BREAKING=$(echo "$COMMITS" | grep -c "BREAKING" || echo "0")
+            
+            echo "Commit analysis: $HAS_FEAT features, $HAS_FIX fixes, $HAS_BREAKING breaking changes"
+            
+            # Determine version bump type
+            if [ "$HAS_BREAKING" -gt 0 ]; then
+              echo "Breaking changes detected, bumping major version"
+              npm version major --no-git-tag-version
+            elif [ "$HAS_FEAT" -gt 0 ]; then
+              echo "Features detected, bumping minor version"
+              npm version minor --no-git-tag-version
+            elif [ "$HAS_FIX" -gt 0 ]; then
+              echo "Fixes detected, bumping patch version"
+              npm version patch --no-git-tag-version
+            else
+              echo "No conventional commits found, bumping patch version"
+              npm version patch --no-git-tag-version
+            fi
+            
+            NEW_VERSION=$(node -p "require('./package.json').version")
+            echo "Determined semantic version: $NEW_VERSION"
+          else
+            # For alpha/beta releases, bump patch first, then add prerelease
+            echo "Creating $PREID release from current version: $CURRENT"
+            
+            # Check if current version already has this prerelease type
+            if [[ "$CURRENT" == *"-$PREID."* ]]; then
+              # Current version is already a prerelease of this type, increment it
+              PRERELEASE_NUM=$(echo "$CURRENT" | sed "s/.*-$PREID\.//")
               NEW_PRERELEASE_NUM=$((PRERELEASE_NUM + 1))
               # Extract base version (e.g., 0.1.1 from 0.1.1-alpha.1)
-              BASE_VERSION=$(echo "$LATEST_PRERELEASE" | sed "s/-$PREID\..*//")
+              BASE_VERSION=$(echo "$CURRENT" | sed "s/-$PREID\..*//")
               NEW_VERSION="$BASE_VERSION-$PREID.$NEW_PRERELEASE_NUM"
             else
-              # No prerelease version exists, create first one
+              # Current version is not a prerelease, bump patch first, then add prerelease
+              echo "Bumping patch version first, then adding prerelease..."
               npm version patch --no-git-tag-version
               PATCH_VERSION=$(node -p "require('./package.json').version")
               npm version prerelease --preid=$PREID --no-git-tag-version
               NEW_VERSION=$(node -p "require('./package.json').version")
-              echo "Created first prerelease version: $NEW_VERSION"
-              exit 0
+              echo "Created $PREID prerelease version: $NEW_VERSION"
             fi
           fi
 
@@ -114,6 +146,25 @@ jobs:
           npm version "$NEW_VERSION" --no-git-tag-version
           VERIFIED=$(node -p "require('./package.json').version")
           echo "Verified version: $VERIFIED"
+
+      - name: Commit version changes
+        run: |
+          # Configure git
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+          # Check if there are changes to commit
+          if git diff --quiet package.json; then
+            echo "No changes to package.json, skipping commit"
+          else
+            echo "Changes detected in package.json, committing..."
+            git add package.json
+            git commit -m "chore: bump version to $VERIFIED [skip ci]"
+            
+            # Push changes back to the repository
+            echo "Pushing changes to repository..."
+            git push origin HEAD:${{ github.ref_name }}
+          fi
 
       - name: Skip if version already exists
         id: exists
@@ -147,7 +198,15 @@ jobs:
           TYPE_UPPER=$(echo "$TYPE" | tr '[:lower:]' '[:upper:]')
 
           # Create GitHub release
-          gh release create "$TAG" \
-            --title "$TAG" \
-            --notes "**${TYPE_UPPER} Release** - ${TYPE_UPPER} version $VER" \
-            --prerelease
+          if [[ "$TYPE" == "stable" ]]; then
+            # Stable release - not prerelease
+            gh release create "$TAG" \
+              --title "$TAG" \
+              --notes "**${TYPE_UPPER} Release** - ${TYPE_UPPER} version $VER"
+          else
+            # Alpha/Beta release - is prerelease
+            gh release create "$TAG" \
+              --title "$TAG" \
+              --notes "**${TYPE_UPPER} Release** - ${TYPE_UPPER} version $VER" \
+              --prerelease
+          fi

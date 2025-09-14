@@ -1,6 +1,6 @@
 {
   "name": "@letuscode/openrouter-cli",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "CLI tool for OpenRouter (OpenAI-compatible)",
   "bin": {
     "openrouter": "bin/openrouter"
