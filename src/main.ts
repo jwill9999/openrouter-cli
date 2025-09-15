@@ -17,13 +17,11 @@ import { runInitWizard } from './shared/init.js';
 import { attachStyledHelp, answerHeader, infoFooter, showSpinner } from './shared/ui.js';
 import { isPolicyError, handlePolicyError } from './shared/errors.js';
 import { registerModelsCommand } from './commands/models.js';
+import { printBanner } from './shared/banner.js';
 
 export function buildProgram() {
   const program = new Command();
   program.name('openrouter').description('OpenRouter CLI').version('0.1.0');
-
-  // Attach styled help (banner + examples)
-  attachStyledHelp(program);
 
   // Attach styled help (banner + examples)
   attachStyledHelp(program);
@@ -317,6 +315,9 @@ export function buildProgram() {
 }
 
 export async function main() {
+  // Show banner on startup
+  printBanner();
+
   const program = buildProgram();
   if (process.argv.length <= 2) {
     // No args: launch init flow by default

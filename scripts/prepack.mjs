@@ -7,6 +7,7 @@ async function main() {
   try {
     await fs.chmod(binPath, 0o755);
   } catch (err) {
+    console.error(err);
     // Best-effort: on Windows or restricted FS, chmod may be unsupported; ignore.
   }
 }
