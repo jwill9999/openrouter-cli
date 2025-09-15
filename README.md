@@ -12,11 +12,11 @@ You can change your model any time. In a terminal, run `openrouter models` to br
 <table>
 <tr>
 <td align="center">
-<img src="assets/img/session.png" width="400" />
+<img src="https://raw.githubusercontent.com/letuscode/openrouter-cli/main/assets/img/session.png" width="400" />
 <br><em>Monitor your current session costs</em>
 </td>
 <td align="center">
-<img src="assets/img/billing.png" width="400" />
+<img src="https://raw.githubusercontent.com/letuscode/openrouter-cli/main/assets/img/billing.png" width="400" />
 <br><em>Get Billing Information</em>
 </td>
 </tr>
@@ -27,7 +27,7 @@ You can change your model any time. In a terminal, run `openrouter models` to br
 <table>
 <tr>
 <td align="center">
-<img src="assets/img/fuzzy search.png" width="100%" />
+<img src="https://raw.githubusercontent.com/letuscode/openrouter-cli/main/assets/img/fuzzy%20search.png" width="100%" />
 <br><em>Monitor your current session costs</em>
 </td>
 </tr >
@@ -38,7 +38,7 @@ You can change your model any time. In a terminal, run `openrouter models` to br
 <table>
 <tr>
 <td align="center">
-<img src="assets/img/chat.png" width="100%" />
+<img src="https://raw.githubusercontent.com/letuscode/openrouter-cli/main/assets/img/chat.png" width="100%" />
 <br><em>Repl Chat Configurations</em>
 </td>
 </tr >
