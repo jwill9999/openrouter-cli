@@ -140,4 +140,4 @@ Pick 1-10 or type a model id:
 
 ## License
 
-- MIT
+- Polyform Noncommercial License 1.0.0
