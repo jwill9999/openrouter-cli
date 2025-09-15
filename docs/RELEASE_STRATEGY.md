@@ -13,15 +13,6 @@ This document outlines our automated release strategy for the OpenRouter CLI pro
 - **When to use**: When developing new features that may have breaking changes
 - **Automation**: Automatic version bumping and publishing on push
 
-### Beta Branch (`beta`)
-
-- **Purpose**: Feature-complete functionality ready for testing
-- **Release Type**: Beta releases
-- **NPM Tag**: `beta`
-- **Version Pattern**: `0.1.3-beta.0`, `0.1.4-beta.0`, etc. (next patch version + beta)
-- **When to use**: When features are complete and ready for broader testing
-- **Automation**: Automatic version bumping and publishing on push
-
 ### Main Branch (`main`)
 
 - **Purpose**: Stable, production-ready releases
@@ -35,9 +26,8 @@ This document outlines our automated release strategy for the OpenRouter CLI pro
 
 1. **Create feature branch**: `feature/your-feature-name`
 2. **Develop feature**: Push commits → Automatic beta releases (`0.1.3-beta.0`, `0.1.3-beta.1`)
-3. **Merge to beta**: `beta` branch
-4. **Test thoroughly**: Push commits → Automatic beta releases (`0.1.4-beta.0`, `0.1.4-beta.1`)
-5. **Merge to main**: When ready → Automatic stable release (semantic versioning: `0.2.0`, `1.0.0`, etc.)
+3. **Test thoroughly**: Use beta NPM package for testing
+4. **Merge to main**: When satisfied → Automatic stable release (semantic versioning: `0.2.0`, `1.0.0`, etc.)
 
 ## Automated Version Management
 
@@ -110,7 +100,7 @@ npm install @letuscode/openrouter-cli@0.1.0-beta.1
 ### GitHub Actions Workflow
 
 - **File**: `.github/workflows/beta.yml`
-- **Triggers**: Push to `feature/*`, `beta`, or merge to `main`
+- **Triggers**: Push to `feature/*` or `main`
 - **Permissions**: Full repository access for automated commits
 - **Features**:
   - Automatic version bumping
@@ -123,7 +113,6 @@ npm install @letuscode/openrouter-cli@0.1.0-beta.1
 ```bash
 # Beta releases
 Main: 0.1.2 → Feature branch → 0.1.3-beta.0
-Main: 0.1.2 → Beta branch → 0.1.3-beta.0
 
 # Main releases (semantic versioning)
 Commits: "feat: add feature" → 0.2.0

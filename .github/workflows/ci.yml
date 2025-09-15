@@ -107,7 +107,7 @@ jobs:
           echo "Analyzing commits to determine semantic version..."
 
           # Get commits since last stable release
-          LAST_STABLE=$(npm view "$PKG" versions --json 2>/dev/null | jq -r ".[] | select(startswith(\"0.\") and (contains(\"-alpha.\") | not) and (contains(\"-beta.\") | not))" | tail -1) || echo ""
+          LAST_STABLE=$(npm view "$PKG" versions --json 2>/dev/null | jq -r ".[] | select(startswith(\"0.\") and (contains(\"-beta.\") | not))" | tail -1) || echo ""
 
           if [ -n "$LAST_STABLE" ] && [ "$LAST_STABLE" != "null" ]; then
             echo "Last stable version: $LAST_STABLE"

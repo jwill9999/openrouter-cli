@@ -3,9 +3,46 @@
 [![npm latest](https://img.shields.io/npm/v/@letuscode/openrouter-cli)](https://www.npmjs.com/package/@letuscode/openrouter-cli)
 [![npm beta](https://img.shields.io/npm/v/@letuscode/openrouter-cli/beta)](https://www.npmjs.com/package/@letuscode/openrouter-cli?activeTab=versions)
 
-OpenAI‑compatible CLI for OpenRouter. Ask questions, chat in a REPL, and fuzzy‑search models.
+OpenAI‑compatible CLI for `OpenRouter`. Ask questions, chat in a REPL, and fuzzy‑search models.
+
+> **Note**: This project is in MVP development. Beta releases are for testing, and stable releases are for general use. See [Release Strategy](docs/RELEASE_STRATEGY.md) for details.
 
 You can change your model any time. In a terminal, run `openrouter models` to browse, or in the REPL type `/model` to search inline. Tip: search for `free` to see free models.
+
+<table>
+<tr>
+<td align="center">
+<img src="assets/img/session.png" width="400" />
+<br><em>Monitor your current session costs</em>
+</td>
+<td align="center">
+<img src="assets/img/billing.png" width="400" />
+<br><em>Get Billing Information</em>
+</td>
+</tr>
+</table>
+
+## Fuzzy Search Models
+
+<table>
+<tr>
+<td align="center">
+<img src="assets/img/fuzzy search.png" width="100%" />
+<br><em>Monitor your current session costs</em>
+</td>
+</tr >
+</table>
+
+## Repl Chat Configurations
+
+<table>
+<tr>
+<td align="center">
+<img src="assets/img/chat.png" width="100%" />
+<br><em>Repl Chat Configurations</em>
+</td>
+</tr >
+</table>
 
 ## Install
 
@@ -18,13 +55,6 @@ You can change your model any time. In a terminal, run `openrouter models` to br
 
 - Global: `npm i -g @letuscode/openrouter-cli@beta`
 - One‑off: `npx @letuscode/openrouter-cli@beta --help`
-
-### Alpha Release (Experimental)
-
-- Global: `npm i -g @letuscode/openrouter-cli@alpha`
-- One‑off: `npx @letuscode/openrouter-cli@alpha --help`
-
-> **Note**: This project is in MVP development. Alpha releases are experimental, beta releases are for testing, and stable releases are for general use. See [Release Strategy](docs/RELEASE_STRATEGY.md) for details.
 
 Tip: Running `openrouter` with no args starts the setup wizard and then opens the REPL (in a terminal).
 
@@ -111,13 +141,3 @@ Pick 1-10 or type a model id:
 ## License
 
 - MIT
-
-# Test alpha release
-
-# Testing GitHub release creation
-
-# Final test of alpha workflow
-
-# Testing improved version bumping
-
-# Testing version increment
