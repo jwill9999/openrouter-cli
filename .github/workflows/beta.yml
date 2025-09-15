@@ -4,11 +4,10 @@ on:
   push:
     branches:
       - 'feature/**'
-      - 'beta'
+      - 'main'
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches:
-      - 'beta'
       - 'main'
 
 jobs:
@@ -76,16 +75,11 @@ jobs:
             echo "preid=beta" >> $GITHUB_OUTPUT
             echo "tag=beta" >> $GITHUB_OUTPUT
             echo "Release type: BETA (experimental features)"
-          elif [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == refs/heads/beta ]]; then
-            echo "type=beta" >> $GITHUB_OUTPUT
-            echo "preid=beta" >> $GITHUB_OUTPUT
-            echo "tag=beta" >> $GITHUB_OUTPUT
-            echo "Release type: BETA (testing phase - direct push)"
-          elif [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "beta" ]]; then
-            echo "type=beta" >> $GITHUB_OUTPUT
-            echo "preid=beta" >> $GITHUB_OUTPUT
-            echo "tag=beta" >> $GITHUB_OUTPUT
-            echo "Release type: BETA (testing phase - PR merge)"
+          elif [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == refs/heads/main ]]; then
+            echo "type=stable" >> $GITHUB_OUTPUT
+            echo "preid=" >> $GITHUB_OUTPUT
+            echo "tag=latest" >> $GITHUB_OUTPUT
+            echo "Release type: STABLE (production ready)"
           elif [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "main" ]]; then
             echo "type=stable" >> $GITHUB_OUTPUT
             echo "preid=" >> $GITHUB_OUTPUT
@@ -111,8 +105,8 @@ jobs:
             # For stable releases, analyze commits to determine semantic version
             echo "Analyzing commits to determine semantic version..."
             
-            # Get commits since last stable release
-            LAST_STABLE=$(npm view "$PKG" versions --json 2>/dev/null | jq -r ".[] | select(startswith(\"0.\") and (contains(\"-alpha.\") | not) and (contains(\"-beta.\") | not))" | tail -1) || echo ""
+            # Get commits since last stable release (excluding beta versions)
+            LAST_STABLE=$(npm view "$PKG" versions --json 2>/dev/null | jq -r ".[] | select(startswith(\"0.\") and (contains(\"-beta.\") | not))" | tail -1) || echo ""
             
             if [ -n "$LAST_STABLE" ] && [ "$LAST_STABLE" != "null" ]; then
               echo "Last stable version: $LAST_STABLE"
