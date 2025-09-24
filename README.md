@@ -3,6 +3,13 @@
 [![npm latest](https://img.shields.io/npm/v/@letuscode/openrouter-cli)](https://www.npmjs.com/package/@letuscode/openrouter-cli)
 [![npm beta](https://img.shields.io/npm/v/@letuscode/openrouter-cli/beta)](https://www.npmjs.com/package/@letuscode/openrouter-cli?activeTab=versions)
 
+
+## 📽️ Video Overview
+
+Want to see OpenRouter CLI in action? Watch our [video overview](https://youtu.be/UhWFaFXR1Vs?si=O1nr95-VMvXEbXZ0)!
+
+[![Spec Kit video header](https://img.youtube.com/vi/UhWFaFXR1Vs/0.jpg)](https://youtu.be/UhWFaFXR1Vs?si=O1nr95-VMvXEbXZ0)
+
 OpenAI‑compatible CLI for `OpenRouter`. Ask questions, chat in a REPL, and fuzzy‑search models.
 
 > **Note**: This project is in MVP development. Beta releases are for testing, and stable releases are for general use. See [Release Strategy](docs/RELEASE_STRATEGY.md) for details.
